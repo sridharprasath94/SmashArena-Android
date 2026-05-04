@@ -46,6 +46,7 @@ Android sports facility booking app for a local arena. Users sign in, browse one
 - Membership is **monthly**, stored in Firestore under the user's UID
 - Membership UI is presented as a **subtle, non-intrusive banner** on the home screen — no pop-ups, no aggressive CTAs
 - Tapping it opens a plan comparison screen with "Become a Member" CTA (UI only — no payment gateway for now)
+- **Cricket nets membership is separate from badminton membership** — plans, pricing, and quota are defined independently. Details TBD.
 
 ---
 
@@ -244,6 +245,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 - Version catalogue: `gradle/libs.versions.toml`
 - Build files: Kotlin DSL (`build.gradle.kts`)
 - VBPD: `dev.androidbroadcast.vbpd:vbpd` + `vbpd-reflection` (Maven Central)
+
+| Dependency | Version |
+|---|---|
+| AGP | 8.7.3 |
+| Kotlin | 2.1.0 |
+| KSP | 2.1.0-1.0.29 |
+| Hilt | 2.54 |
+| Room | 2.7.0 |
+| Navigation | 2.8.5 |
+| Firebase BOM | 33.8.0 |
+| Google Services plugin | 4.4.2 |
+| VBPD | 2.0.4 |
 
 ---
 
