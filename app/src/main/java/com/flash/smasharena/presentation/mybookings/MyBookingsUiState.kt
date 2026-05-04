@@ -12,4 +12,6 @@ data class BookingItem(
 data class MyBookingsUiState(
     val bookings: List<BookingItem> = emptyList(),
     val isLoading: Boolean = true,
+    val cancellingDocId: String? = null,
+    val error: String? = null,
 )

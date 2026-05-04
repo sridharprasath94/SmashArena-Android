@@ -37,6 +37,20 @@
     <string name="slot_locked">Unavailable</string>
     <string name="slot_my_booking">Your booking</string>
 
+    <!-- Confirmation dialogs -->
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_logout_title">Log out?</string>
+    <string name="dialog_logout_message">You\'ll need to sign in again to book slots.</string>
+    <string name="dialog_logout_confirm">Log out</string>
+    <string name="dialog_book_title">Confirm booking</string>
+    <string name="dialog_book_message">%1$s\n%2$s · %3$s</string>
+    <string name="dialog_book_confirm">Book</string>
+    <string name="dialog_cancel_booking_title">Cancel booking?</string>
+    <string name="dialog_cancel_booking_message">Cancel your %1$s booking on %2$s at %3$s?\n\nThis slot will be released back to the pool.</string>
+    <string name="dialog_cancel_booking_confirm">Cancel booking</string>
+    <string name="dialog_keep">Keep it</string>
+    <string name="booking_cancel">Cancel</string>
+
     <!-- Errors -->
     <string name="error_slot_taken">That slot is already booked. Please pick another time.</string>
     <string name="error_outside_booking_window">This slot isn\'t available for booking yet.</string>
@@ -46,9 +60,23 @@
     <!-- My bookings -->
     <string name="my_bookings_empty">You don\'t have any upcoming bookings.</string>
 
-    <!-- Membership -->
+    <!-- Membership banner -->
     <string name="membership_banner_none">No membership · View plans →</string>
-    <string name="membership_plan_rally">Rally</string>
-    <string name="membership_plan_smash">Smash</string>
-    <string name="membership_plan_ace">Ace</string>
+
+    <!-- Membership screen -->
+    <string name="membership_title">Membership Plans</string>
+    <string name="membership_headline">Book smarter, play more.</string>
+    <string name="membership_subheadline">Members get 7-day early access to slots — for both badminton courts and cricket nets.</string>
+    <string name="perk_early_access">7-day early\naccess</string>
+    <string name="perk_cricket_access">Cricket nets\nincluded</string>
+    <string name="perk_save_more">Save more\nper session</string>
+    <string name="label_choose_plan">Choose a plan</string>
+    <string name="plan_badminton_sessions">🏸  %1$d badminton sessions / month</string>
+    <string name="plan_cricket_sessions">🏏  %1$d free cricket net sessions / month</string>
+    <string name="plan_recommended">BEST VALUE</string>
+    <string name="plan_feature_early_access">✓  Book 7 days before general opening</string>
+    <string name="plan_feature_priority">✓  Priority slot selection for both courts</string>
+    <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
+    <string name="plan_get_started">Get Started</string>
+    <string name="plan_current">Current Plan</string>
 </resources>

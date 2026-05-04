@@ -31,7 +31,15 @@
         <action
             android:id="@+id/action_homeFragment_to_myBookingsFragment"
             app:destination="@id/myBookingsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_membershipFragment"
+            app:destination="@id/membershipFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/membershipFragment"
+        android:name="com.flash.smasharena.presentation.membership.MembershipFragment"
+        android:label="Membership" />
 
     <fragment
         android:id="@+id/myBookingsFragment"

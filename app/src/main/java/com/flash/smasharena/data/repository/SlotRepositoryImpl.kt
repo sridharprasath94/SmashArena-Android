@@ -69,6 +69,21 @@ class SlotRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    override suspend fun cancelBooking(docId: String): Result<Unit> = runCatching {
+        val uid = firebaseAuth.currentUser?.uid ?: error("Not signed in")
+        suspendCancellableCoroutine { cont ->
+            val docRef = firestore.collection("slots").document(docId)
+            // Verify ownership then delete in a transaction
+            firestore.runTransaction { tx ->
+                val snapshot = tx.get(docRef)
+                if (snapshot.getString("bookedBy") != uid) error("Not your booking")
+                tx.delete(docRef)
+            }
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resumeWithException(it) }
+        }
+    }
+
     override suspend fun bookSlot(facilityId: String, date: String, hour: Int): Result<Unit> =
         runCatching {
             val uid = firebaseAuth.currentUser?.uid ?: error("Not signed in")

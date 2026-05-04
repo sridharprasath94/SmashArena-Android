@@ -2,7 +2,6 @@ package com.flash.smasharena.presentation.mybookings
 
 import android.os.Bundle
 import android.view.View
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -13,6 +12,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentMyBookingsBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import dev.androidbroadcast.vbpd.viewBinding
 import kotlinx.coroutines.launch
@@ -34,16 +35,33 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
     }
 
     private fun setupToolbar() {
-        (requireActivity() as AppCompatActivity).setSupportActionBar(binding.toolbar)
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
     }
 
     private fun setupRecyclerView() {
-        adapter = BookingAdapter()
+        adapter = BookingAdapter { item -> showCancelConfirmation(item) }
         binding.rvBookings.apply {
             this.adapter = this@MyBookingsFragment.adapter
             layoutManager = LinearLayoutManager(requireContext())
         }
+    }
+
+    private fun showCancelConfirmation(item: BookingItem) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.dialog_cancel_booking_title))
+            .setMessage(
+                getString(
+                    R.string.dialog_cancel_booking_message,
+                    item.facilityDisplayName,
+                    item.displayDate,
+                    item.timeLabel,
+                )
+            )
+            .setPositiveButton(R.string.dialog_cancel_booking_confirm) { _, _ ->
+                viewModel.cancelBooking(item.docId)
+            }
+            .setNegativeButton(R.string.dialog_keep, null)
+            .show()
     }
 
     private fun observeUiState() {
@@ -53,7 +71,14 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
                     binding.progressBar.isVisible = state.isLoading
                     binding.rvBookings.isVisible = !state.isLoading && state.bookings.isNotEmpty()
                     binding.tvEmpty.isVisible = !state.isLoading && state.bookings.isEmpty()
+
+                    adapter.cancellingDocId = state.cancellingDocId
                     adapter.submitList(state.bookings)
+
+                    state.error?.let {
+                        viewModel.onErrorShown()
+                        Snackbar.make(requireView(), it, Snackbar.LENGTH_LONG).show()
+                    }
                 }
             }
         }
