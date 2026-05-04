@@ -9,6 +9,25 @@
         <item name="colorOnPrimary">@color/background</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/text_primary</item>
+        <item name="materialAlertDialogTheme">@style/Theme.SmashArena.Dialog</item>
+    </style>
+
+    <!-- Dark dialog overlay — used by all MaterialAlertDialogBuilder calls -->
+    <style name="Theme.SmashArena.Dialog" parent="Theme.MaterialComponents.DayNight.Dialog">
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorPrimary">@color/accent_green</item>
+        <item name="android:colorBackground">@color/surface</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Theme.SmashArena.Dialog.PositiveButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Theme.SmashArena.Dialog.NegativeButton</item>
+    </style>
+
+    <style name="Theme.SmashArena.Dialog.PositiveButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/accent_green</item>
+    </style>
+
+    <style name="Theme.SmashArena.Dialog.NegativeButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/text_secondary</item>
     </style>
 
     <style name="TextAppearance.SmashArena.ToolbarTitle" parent="TextAppearance.MaterialComponents.Headline6">

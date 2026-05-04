@@ -37,6 +37,20 @@
     <string name="slot_locked">Unavailable</string>
     <string name="slot_my_booking">Your booking</string>
 
+    <!-- Confirmation dialogs -->
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_logout_title">Log out?</string>
+    <string name="dialog_logout_message">You\'ll need to sign in again to book slots.</string>
+    <string name="dialog_logout_confirm">Log out</string>
+    <string name="dialog_book_title">Confirm booking</string>
+    <string name="dialog_book_message">%1$s\n%2$s · %3$s</string>
+    <string name="dialog_book_confirm">Book</string>
+    <string name="dialog_cancel_booking_title">Cancel booking?</string>
+    <string name="dialog_cancel_booking_message">Cancel your %1$s booking on %2$s at %3$s?\n\nThis slot will be released back to the pool.</string>
+    <string name="dialog_cancel_booking_confirm">Cancel booking</string>
+    <string name="dialog_keep">Keep it</string>
+    <string name="booking_cancel">Cancel</string>
+
     <!-- Errors -->
     <string name="error_slot_taken">That slot is already booked. Please pick another time.</string>
     <string name="error_outside_booking_window">This slot isn\'t available for booking yet.</string>

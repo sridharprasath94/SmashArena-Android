@@ -40,6 +40,14 @@
             android:paddingTop="8dp"
             android:paddingBottom="32dp">
 
+            <!-- Membership banner -->
+            <include
+                android:id="@+id/membership_banner"
+                layout="@layout/item_membership_banner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp" />
+
             <!-- Section header -->
             <TextView
                 android:layout_width="wrap_content"
@@ -63,14 +71,6 @@
             <include
                 android:id="@+id/card_cricket"
                 layout="@layout/item_facility_card"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp" />
-
-            <!-- Membership banner -->
-            <include
-                android:id="@+id/membership_banner"
-                layout="@layout/item_membership_banner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 

@@ -2,7 +2,6 @@ package com.flash.smasharena.presentation.home
 
 import android.os.Bundle
 import android.view.View
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -12,6 +11,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentHomeBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.flash.smasharena.domain.model.Facility
 import com.flash.smasharena.domain.model.MembershipTier
 import dev.androidbroadcast.vbpd.viewBinding
@@ -34,8 +34,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun setupToolbar() {
-        (requireActivity() as AppCompatActivity).setSupportActionBar(binding.toolbar)
-
         binding.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.menu_my_bookings -> {
@@ -43,12 +41,21 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     true
                 }
                 R.id.menu_logout -> {
-                    viewModel.signOut()
+                    showLogoutConfirmation()
                     true
                 }
                 else -> false
             }
         }
+    }
+
+    private fun showLogoutConfirmation() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_logout_title)
+            .setMessage(R.string.dialog_logout_message)
+            .setPositiveButton(R.string.dialog_logout_confirm) { _, _ -> viewModel.signOut() }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     private fun updateSyncLabel(syncedAt: String) {

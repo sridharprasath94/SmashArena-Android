@@ -38,6 +38,17 @@ class MyBookingsViewModel @Inject constructor(
         }
     }
 
+    fun cancelBooking(docId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(cancellingDocId = docId) }
+            slotRepository.cancelBooking(docId)
+                .onSuccess { _uiState.update { it.copy(cancellingDocId = null) } }
+                .onFailure { e -> _uiState.update { it.copy(cancellingDocId = null, error = e.message) } }
+        }
+    }
+
+    fun onErrorShown() = _uiState.update { it.copy(error = null) }
+
     private fun facilityDisplayName(facilityId: String): String = when (facilityId) {
         "badminton_court_1" -> "Badminton Court"
         "cricket_net_1" -> "Cricket Net"

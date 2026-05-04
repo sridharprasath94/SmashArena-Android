@@ -2,7 +2,6 @@ package com.flash.smasharena.presentation.membership
 
 import android.os.Bundle
 import android.view.View
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -35,7 +34,6 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
     }
 
     private fun setupToolbar() {
-        (requireActivity() as AppCompatActivity).setSupportActionBar(binding.toolbar)
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
     }
 

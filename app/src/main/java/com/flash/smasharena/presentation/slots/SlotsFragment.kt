@@ -2,7 +2,6 @@ package com.flash.smasharena.presentation.slots
 
 import android.os.Bundle
 import android.view.View
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -14,6 +13,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentSlotsBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import dev.androidbroadcast.vbpd.viewBinding
@@ -39,7 +39,6 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     }
 
     private fun setupToolbar() {
-        (requireActivity() as AppCompatActivity).setSupportActionBar(binding.toolbar)
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
     }
 
@@ -60,7 +59,29 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     }
 
     private fun setupBookButton() {
-        binding.btnBook.setOnClickListener { viewModel.bookSelectedSlot() }
+        binding.btnBook.setOnClickListener { showBookingConfirmation() }
+    }
+
+    private fun showBookingConfirmation() {
+        val state = viewModel.uiState.value
+        val slot = state.selectedSlot ?: return
+        val dateItem = state.dates.find { it.isSelected }
+
+        val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_book_title)
+            .setMessage(
+                getString(
+                    R.string.dialog_book_message,
+                    state.facilityName,
+                    dateLabel,
+                    slot.timeLabel,
+                )
+            )
+            .setPositiveButton(R.string.dialog_book_confirm) { _, _ -> viewModel.bookSelectedSlot() }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     private fun observeUiState() {
