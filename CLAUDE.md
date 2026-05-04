@@ -1,6 +1,9 @@
 # SmashArena – Claude Working Brief
 
-Android sports facility booking app for a local arena. Users sign in, browse one badminton court and one cricket net, check real-time availability on a calendar, and make hourly bookings. Members get early access to slots based on their plan.
+Android sports facility booking app. Users sign in, browse a badminton court and cricket net, check real-time slot availability on a 14-day calendar, and make hourly bookings. Members get early access based on their plan tier.
+
+**Package:** `com.flash.smasharena`
+**Min SDK:** 24 | **Target SDK:** 35
 
 ---
 
@@ -9,70 +12,78 @@ Android sports facility booking app for a local arena. Users sign in, browse one
 | Layer | Technology |
 |---|---|
 | Language | Kotlin |
-| UI | XML layouts, View Binding (VBPD), Material 3 |
-| Architecture | MVVM, Clean Architecture (domain / data / presentation) |
+| UI | XML layouts, View Binding via VBPD, Material 3 |
+| Architecture | MVVM + Clean Architecture (domain / data / presentation) |
 | DI | Hilt |
-| Local DB | Room |
+| Local DB | Room (entities exist but not used in current features — kept for future use) |
 | Navigation | Navigation Component + Safe Args |
-| Async | Coroutines + Flow |
+| Async | Coroutines + StateFlow |
 | Auth | Firebase Authentication (email/password + Google Sign-In) |
-| Remote | Firebase Firestore (real-time snapshot listeners) |
-| View Binding | `dev.androidbroadcast.vbpd:vbpd` — all fragments use `by viewBinding(XxxBinding::bind)` |
+| Remote DB | Firebase Firestore (real-time `callbackFlow` snapshot listeners) |
+| View Binding | `dev.androidbroadcast.vbpd` — all fragments use `by viewBinding(XxxBinding::bind)` |
+
+---
+
+## Gradle Versions (libs.versions.toml)
+
+| Dependency | Version |
+|---|---|
+| AGP | 9.0.1 |
+| Kotlin | 2.3.10 |
+| KSP | 2.3.6 |
+| Hilt | 2.59.2 |
+| Room | 2.8.4 |
+| Navigation | 2.9.7 |
+| Firebase BOM | 33.8.0 |
+| Google Services plugin | 4.4.2 |
+| VBPD | 2.0.4 |
+| Material | 1.13.0 |
+
+**Critical:** Do NOT add `alias(libs.plugins.kotlin.android)` to `app/build.gradle.kts`. AGP 9.x already bundles Kotlin on the classpath — re-declaring it causes a build error ("plugin already on the classpath with an unknown version").
 
 ---
 
 ## Facilities
 
-| ID | Name | Type |
+| Enum | ID | Display Name |
 |---|---|---|
-| `badminton_court_1` | Badminton Court | Badminton |
-| `cricket_net_1` | Cricket Net | Cricket |
+| `BADMINTON_COURT` | `badminton_court_1` | Badminton Court |
+| `CRICKET_NET` | `cricket_net_1` | Cricket Net |
 
-- Operating hours: **05:00 – 22:00** daily (17 bookable slots per facility per day)
+- Operating hours: **05:00 – 22:00** daily (hours 5–21 = 17 slots)
 - Each slot is exactly **1 hour**
-- Slot keys: `{facilityId}_{date}_{hour}` e.g. `badminton_court_1_2025-06-10_8`
+- Firestore doc ID: `{facilityId}_{date}_{hour}` e.g. `badminton_court_1_2026-05-10_8`
 
 ---
 
-## Membership Plans
+## Membership Plans (Badminton)
 
-| Plan | Price | Sessions/month | Booking window |
+| Enum | Plan | Price | Sessions/month |
 |---|---|---|---|
-| **Rally** | ₹1,000 / month | 8 sessions | 7–6 days early access |
-| **Smash** | ₹1,500 / month | 12 sessions | 7–6 days early access |
-| **Ace** | ₹2,000 / month | 16 sessions | 7–6 days early access |
+| `RALLY` | Rally | ₹1,000 | 8 |
+| `SMASH` | Smash | ₹1,500 | 12 |
+| `ACE` | Ace | ₹2,000 | 16 |
 
-- All three tiers share the same **7-day early booking window**; the difference is session quota per month
-- Membership is **monthly**, stored in Firestore under the user's UID
-- Membership UI is presented as a **subtle, non-intrusive banner** on the home screen — no pop-ups, no aggressive CTAs
-- Tapping it opens a plan comparison screen with "Become a Member" CTA (UI only — no payment gateway for now)
-- **Cricket nets membership is separate from badminton membership** — plans, pricing, and quota are defined independently. Details TBD.
+- Monthly membership, stored in Firestore under `/users/{uid}`
+- All tiers get the same **7-day early booking window** (days 7–6 before the slot)
+- Non-members can book during days 5–0 only
+- **Cricket net membership is separate** — plans TBD, not yet implemented
+- Membership UI: subtle banner on Home screen → taps open a plan comparison screen (not built yet)
+- No payment gateway — membership plan screen is UI-only for now
 
 ---
 
 ## Booking Window Rules
 
 ```
-Day 7 to Day 6 before session
-  → Member-only window (Rally / Smash / Ace)
-  → Non-members cannot see or book these slots yet
-
-Day 5 before session
-  → Any member slot NOT booked by end of Day 6 is released to hourly booking
-
-Day 5 to Day 3 before session
-  → Hourly booking open to ALL users (members + non-members)
-
-Day 3 to Day 0 (same day)
-  → Hourly booking continues; first-come, first-served
-
-Beyond Day 7
-  → No booking possible for anyone
+daysUntil > 7   → LOCKED for everyone (too far ahead)
+daysUntil 6–7   → MEMBER_HOLD: members see AVAILABLE, non-members see LOCKED
+daysUntil 0–5   → Open for everyone — use Firestore status as-is
+daysUntil < 0   → LOCKED (past)
 ```
 
-- Rules enforced **client-side** (disable/hide slots) AND in **Firestore security rules** (source of truth)
-- Members are limited by their monthly session quota — the app checks remaining sessions before confirming a booking
-- Session quota resets on the 1st of each month
+Implemented in `BookingWindowUtils.effectiveStatus()` (pure function, easy to unit test).
+Also enforced in Firestore security rules (server-side source of truth).
 
 ---
 
@@ -80,217 +91,252 @@ Beyond Day 7
 
 ```
 /slots/{facilityId}_{date}_{hour}
-  facilityId    : string   — "badminton_court_1" | "cricket_net_1"
-  date          : string   — "YYYY-MM-DD"
-  hour          : int      — 5..21 (5 = 05:00–06:00)
-  status        : string   — "available" | "member_hold" | "booked"
-  bookedBy      : string?  — Firebase Auth UID | null
-  bookedAt      : timestamp?
+  facilityId  : string    — "badminton_court_1" | "cricket_net_1"
+  date        : string    — "YYYY-MM-DD"
+  hour        : int       — 5..21
+  status      : string    — "available" | "member_hold" | "booked"
+  bookedBy    : string?   — Firebase Auth UID (null if unbooked)
+  bookedAt    : timestamp?
 
 /users/{uid}
   displayName       : string
   email             : string
-  membershipTier    : string   — "none" | "rally" | "smash" | "ace"
-  membershipExpiry  : timestamp?
-  sessionsUsed      : int      — resets monthly
+  membershipTier    : string   — "NONE" | "RALLY" | "SMASH" | "ACE"
+  membershipExpiry  : long?    — epoch millis
+  sessionsUsed      : int
   sessionsQuota     : int      — 0 | 8 | 12 | 16
 ```
 
----
-
-## Project Structure
-
-```
-app/src/main/java/com/smasharena/
-├── data/
-│   ├── local/
-│   │   ├── SmashArenaDatabase.kt
-│   │   ├── Converters.kt
-│   │   ├── dao/
-│   │   │   └── BookingDao.kt
-│   │   └── entity/
-│   │       └── BookingEntity.kt          # Cached local copy of user's own bookings
-│   ├── remote/
-│   │   ├── SlotRemoteDataSource.kt       # Firestore slot reads + snapshot listeners
-│   │   └── UserRemoteDataSource.kt       # Firestore user profile reads/writes
-│   └── repository/
-│       ├── AuthRepositoryImpl.kt
-│       ├── BookingRepositoryImpl.kt
-│       └── UserRepositoryImpl.kt
-├── di/
-│   ├── DatabaseModule.kt
-│   ├── FirebaseModule.kt
-│   └── RepositoryModule.kt
-├── domain/
-│   ├── model/
-│   │   ├── Facility.kt                   # Enum: BADMINTON_COURT, CRICKET_NET
-│   │   ├── Slot.kt                       # Domain model for a 1-hour slot
-│   │   ├── SlotStatus.kt                 # Enum: AVAILABLE, MEMBER_HOLD, BOOKED, LOCKED
-│   │   ├── Booking.kt
-│   │   ├── MembershipTier.kt             # Enum: NONE, RALLY, SMASH, ACE
-│   │   └── UserProfile.kt
-│   ├── repository/
-│   │   ├── AuthRepository.kt
-│   │   ├── BookingRepository.kt
-│   │   └── UserRepository.kt
-│   └── usecase/
-│       ├── GetSlotsForDateUseCase.kt
-│       ├── BookSlotUseCase.kt
-│       ├── CancelBookingUseCase.kt
-│       └── CheckBookingEligibilityUseCase.kt
-├── presentation/
-│   ├── MainActivity.kt
-│   ├── login/
-│   │   ├── LoginFragment.kt
-│   │   └── LoginViewModel.kt
-│   ├── home/
-│   │   ├── HomeFragment.kt               # Lists facilities + membership banner
-│   │   └── HomeViewModel.kt
-│   ├── slots/
-│   │   ├── SlotsFragment.kt              # Calendar + hourly slot grid for a facility
-│   │   └── SlotsViewModel.kt
-│   ├── mybookings/
-│   │   ├── MyBookingsFragment.kt
-│   │   └── MyBookingsViewModel.kt
-│   └── membership/
-│       ├── MembershipFragment.kt         # Plan comparison screen
-│       └── MembershipViewModel.kt
-└── util/
-    ├── DateTimeUtils.kt
-    └── BookingWindowUtils.kt             # Encapsulates the 7/5/3-day window logic
-```
+Slot documents are only written when a booking happens. `observeSlots` generates all 17 slots client-side and overlays Firestore data on top — so a missing document = available.
 
 ---
 
-## Key Architecture Decisions (Do Not Change Without Reason)
+## Firestore Security Rules (current)
 
-### Authentication flow
 ```
-LoginFragment
-  │
-  ├─► Email/Password → FirebaseAuth.signInWithEmailAndPassword()
-  ├─► Create Account → FirebaseAuth.createUserWithEmailAndPassword()
-  └─► Google Sign-In → GoogleSignInClient → FirebaseAuth.signInWithCredential()
-        └─► On success → navigate to HomeFragment (clear back stack)
-        └─► On failure → show inline error message (never Toast — use TextInputLayout error)
-```
-
-- Firebase project is created by the user — do NOT add `google-services.json` to version control
-- Logout: `FirebaseAuth.signOut()` + `GoogleSignIn.getClient().signOut()` → navigate to LoginFragment (clear back stack)
-- Logout is in the top-right overflow menu (3-dot) on HomeFragment
-
-### Slot availability (real-time)
-- `SlotsFragment` opens a Firestore snapshot listener for all slots of a given `facilityId` + `date`
-- Listener is started in `onStart` and removed in `onStop` via the ViewModel's `onCleared`
-- Slot status changes (another user booking) are reflected immediately without a pull-to-refresh
-
-### Booking window enforcement
-- `BookingWindowUtils.getSlotStatus(date, hour, userTier)` returns the effective `SlotStatus` for display
-- `CheckBookingEligibilityUseCase` runs before any booking write: checks window + quota
-- Firestore security rules mirror these checks — client-side is UX, server-side is truth
-
-### View Binding pattern (all fragments)
-```kotlin
-class HomeFragment : Fragment(R.layout.fragment_home) {
-    private val binding by viewBinding(FragmentHomeBinding::bind)
-    // NO _binding, NO onDestroyView { _binding = null }
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /slots/{slotId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+                            && request.resource.data.bookedBy == request.auth.uid;
+    }
+  }
 }
 ```
 
-### Login screen design
-- Dark background (`#1A1A1A`)
-- Email + Password `TextInputLayout` fields (outlined style)
-- Primary button (pill-shaped, green accent `#B5D86C`): "Sign in"
-- Secondary button (outlined, pill-shaped): "Create account"
-- Google button (outlined, pill-shaped, Google logo): "Sign in with Google"
+---
 
-### Membership banner (HomeFragment)
-- Small card at the bottom of the facilities list — muted styling, not a popup
-- Shows current plan name (or "No membership") + CTA "View plans →"
-- Tapping navigates to MembershipFragment
+## Actual Project Structure
 
-### Overflow menu (HomeFragment toolbar)
 ```
-⋮
-├── Cloud Synced  ✓  (Last synced: <timestamp>)
-├── Backup
-├── Share
-└── Log out
+app/src/main/java/com/flash/smasharena/
+├── SmashArenaApplication.kt          — @HiltAndroidApp
+├── MainActivity.kt                   — AppCompatActivity, setContentView only
+├── data/
+│   ├── Booking.kt, BookingDao.kt, BookingRepository.kt   — legacy Room files (unused, keep)
+│   ├── Court.kt, CourtDao.kt                             — legacy Room files (unused, keep)
+│   ├── User.kt, UserDao.kt                               — legacy Room files (unused, keep)
+│   ├── SmashArenaDatabase.kt                             — Room DB (entities: User, Court, Booking)
+│   └── repository/
+│       ├── AuthRepositoryImpl.kt     — Firebase Auth (email + Google)
+│       ├── SlotRepositoryImpl.kt     — Firestore slots (callbackFlow + transaction)
+│       └── UserRepositoryImpl.kt     — Firestore user profile (get-or-create)
+├── di/
+│   ├── DatabaseModule.kt             — Provides Room DB + DAOs
+│   ├── FirebaseModule.kt             — Provides FirebaseAuth, FirebaseFirestore, GoogleSignInClient
+│   └── RepositoryModule.kt           — @Binds Auth/User/SlotRepository
+├── domain/
+│   ├── model/
+│   │   ├── Facility.kt               — Enum: BADMINTON_COURT, CRICKET_NET (id, nameRes, imageRes)
+│   │   ├── MembershipTier.kt         — Enum: NONE, RALLY, SMASH, ACE (price, quota)
+│   │   ├── Slot.kt                   — Data class (docId and timeLabel as computed properties)
+│   │   ├── SlotStatus.kt             — Enum: AVAILABLE, MEMBER_HOLD, BOOKED, LOCKED, MY_BOOKING
+│   │   └── UserProfile.kt            — Data class (isMember, sessionsRemaining as computed)
+│   └── repository/
+│       ├── AuthRepository.kt
+│       ├── SlotRepository.kt         — observeSlots(), getMyBookings(), bookSlot()
+│       └── UserRepository.kt
+├── presentation/
+│   ├── login/
+│   │   ├── LoginFragment.kt
+│   │   ├── LoginViewModel.kt
+│   │   └── LoginUiState.kt
+│   ├── home/
+│   │   ├── HomeFragment.kt
+│   │   ├── HomeViewModel.kt
+│   │   └── HomeUiState.kt
+│   ├── slots/
+│   │   ├── SlotsFragment.kt
+│   │   ├── SlotsViewModel.kt         — SavedStateHandle for facilityId/facilityName
+│   │   ├── SlotsUiState.kt           — DateItem, DisplaySlot, SlotsUiState
+│   │   ├── DateAdapter.kt            — Horizontal date strip (ListAdapter)
+│   │   └── SlotAdapter.kt            — 3-column slot grid (ListAdapter)
+│   └── mybookings/
+│       ├── MyBookingsFragment.kt
+│       ├── MyBookingsViewModel.kt
+│       ├── MyBookingsUiState.kt      — BookingItem, MyBookingsUiState
+│       └── BookingAdapter.kt
+└── util/
+    ├── DateTimeUtils.kt              — today(), dateWithOffset(), displayDate(), daysUntil(), etc.
+    ├── BookingWindowUtils.kt         — effectiveStatus(), isDateBrowsable()
+    └── TimeFormat.kt
 ```
+
+---
+
+## Navigation Graph
+
+```
+loginFragment (start)
+  └─► homeFragment  (popUpTo loginFragment inclusive)
+        ├─► slotsFragment  (args: facilityId: String, facilityName: String)
+        ├─► myBookingsFragment
+        └─► loginFragment  (logout — popUpTo homeFragment inclusive)
+```
+
+---
+
+## Completed Screens
+
+### Login (`LoginFragment`)
+- Email + password fields (TextInputLayout outlined)
+- Sign in / Create account / Sign in with Google buttons
+- `ActivityResultLauncher` for Google Sign-In intent
+- Errors shown inline (Snackbar), never Toast
+
+### Home (`HomeFragment`)
+- Two facility cards (Badminton Court, Cricket Net) — tap → SlotsFragment
+- Membership banner at bottom — shows tier + sessions remaining (or "No membership · View plans →")
+- Toolbar menu: **Cloud Synced** (disabled, shows last sync time) | **My Bookings** | **Log out**
+- `setSupportActionBar(binding.toolbar)` called here (not in MainActivity)
+
+### Slots (`SlotsFragment`)
+- 14-day horizontal date strip; non-browsable dates are dimmed
+- 3-column slot grid colored by status (green=available, grey=booked, amber=member-hold, dark=locked, blue=mine)
+- Tapping an available slot selects it → floating "Book HH:00 – HH:00" button appears
+- Firestore listener restarted when date changes (`slotObserverJob?.cancel()`)
+- Real-time updates (another user booking reflects immediately)
+
+### My Bookings (`MyBookingsFragment`)
+- Lists all upcoming bookings for the current user (today and later)
+- Real-time Firestore listener (`callbackFlow` with `whereEqualTo("bookedBy", uid)`)
+- Client-side filtered and sorted (date asc, hour asc) — no composite Firestore index needed
+- Empty state text when no upcoming bookings
+
+---
+
+## Key Patterns
+
+### Firebase Task → Coroutine bridge
+```kotlin
+suspendCancellableCoroutine { cont ->
+    task
+        .addOnSuccessListener { cont.resume(Unit) }
+        .addOnFailureListener { cont.resumeWithException(it) }
+}
+```
+No `kotlinx-coroutines-play-services` dependency needed.
+
+### Slot observation (callbackFlow)
+```kotlin
+val listener = query.addSnapshotListener { snapshot, error ->
+    if (error != null) { close(error); return@addSnapshotListener }
+    trySend(/* mapped list */)
+}
+awaitClose { listener.remove() }
+```
+
+### Booking (Firestore transaction)
+```kotlin
+firestore.runTransaction { tx ->
+    val snap = tx.get(docRef)
+    if (snap.exists() && snap.getString("status") == "booked") throw Exception("...")
+    tx.set(docRef, mapOf(...))
+}
+```
+
+### View Binding (all fragments)
+```kotlin
+class FooFragment : Fragment(R.layout.fragment_foo) {
+    private val binding by viewBinding(FooBinding::bind)
+    // No _binding, no onDestroyView null-out
+}
+```
+
+### UI state collection
+```kotlin
+viewLifecycleOwner.lifecycleScope.launch {
+    viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+        viewModel.uiState.collect { state -> /* update UI */ }
+    }
+}
+```
+
+---
+
+## Theme & Colors
+
+| Token | Hex | Usage |
+|---|---|---|
+| `background` | `#1A1A1A` | Screen backgrounds |
+| `surface` | `#242424` | Cards |
+| `accent_green` | `#B5D86C` | Buttons, selected state, booking time text |
+| `text_primary` | `#FFFFFF` | Primary text |
+| `text_secondary` | `#B0B0B0` | Labels, secondary info |
+| `outline` | `#3A3A3A` | Card borders |
+| `slot_available` | `#1E3A1E` | Available slot card |
+| `slot_selected` | `#2D5A2D` | Selected slot card |
+| `slot_booked` | `#2E2E2E` | Booked slot card |
+| `slot_member_hold` | `#3E2800` | Member-only slot card |
+| `slot_locked` | `#1E1E1E` | Locked/unavailable slot card |
+| `slot_my_booking` | `#0D2744` | User's own booking card |
+
+---
+
+## What NOT to do
+
+- Do NOT use Jetpack Compose — XML + VBPD only
+- Do NOT use `_binding` + `onDestroyView` null pattern — use `by viewBinding(...)`
+- Do NOT add `alias(libs.plugins.kotlin.android)` to `app/build.gradle.kts` — causes build error
+- Do NOT use `GlobalScope` — use `viewModelScope`
+- Do NOT use `kotlinx-coroutines-play-services` — bridge Firebase Tasks manually with `suspendCancellableCoroutine`
+- Do NOT add `setupActionBarWithNavController` in `MainActivity` — each fragment calls `setSupportActionBar` itself
+- Do NOT use `fallbackToDestructiveMigration` in Room — additive migrations only
+- Do NOT implement a payment gateway — membership screens are UI-only for now
+- Do NOT use `java.time` APIs — use `java.util.Calendar` / `SimpleDateFormat` for API 24 compatibility
+- Do NOT commit `google-services.json` — it is gitignored
+
+---
+
+## Pending Features
+
+| # | Feature | Notes |
+|---|---|---|
+| 1 | Membership plan comparison screen | UI only, no payment. Navigate from membership banner on Home. |
+| 2 | Booking cancellation | From My Bookings screen. Delete Firestore doc + decrement sessionsUsed. |
+| 3 | Cricket net membership plans | Separate from badminton. Plans/pricing TBD. |
+| 4 | Session quota enforcement on booking | Check `sessionsUsed < sessionsQuota` before writing to Firestore. |
+| 5 | Replace placeholder facility images | `img_badminton_court.xml` and `img_cricket_net.xml` are vector placeholders. |
+| 6 | My Bookings screen — past bookings tab | Currently only shows upcoming (date >= today). |
 
 ---
 
 ## Firebase Setup
 
-| Item | Value |
-|---|---|
-| Auth providers | Email/Password, Google Sign-In |
-| Firestore collection | `slots`, `users` |
-| `google-services.json` | Created by the user — NOT committed to git |
-| Firestore rules | Client: read-only on slots, read-write own user doc; writes go through security rules |
+- Auth providers: Email/Password, Google Sign-In
+- Firestore collections: `slots`, `users`
+- `google-services.json` placed by the user — NOT in git
+- SHA-1 fingerprint added to Firebase project by user
+- `default_web_client_id` is read from `google-services.json` at build time by the Google Services plugin
 
 ---
 
-## Room Database
+## How to Start a New Session
 
-- Version: **1**
-- Entities: `BookingEntity` (local cache of the signed-in user's own past bookings)
-- Migration policy: additive only — do NOT use `fallbackToDestructiveMigration`
-- Timestamps stored as `Long` epoch millis — never `java.util.Date` in entities
-
----
-
-## Gradle / Dependencies
-
-- Version catalogue: `gradle/libs.versions.toml`
-- Build files: Kotlin DSL (`build.gradle.kts`)
-- VBPD: `dev.androidbroadcast.vbpd:vbpd` + `vbpd-reflection` (Maven Central)
-
-| Dependency | Version |
-|---|---|
-| AGP | 8.7.3 |
-| Kotlin | 2.1.0 |
-| KSP | 2.1.0-1.0.29 |
-| Hilt | 2.54 |
-| Room | 2.7.0 |
-| Navigation | 2.8.5 |
-| Firebase BOM | 33.8.0 |
-| Google Services plugin | 4.4.2 |
-| VBPD | 2.0.4 |
-
----
-
-## Known Pending Items
-
-| # | Item | Priority |
-|---|---|---|
-| 1 | Migrate existing Compose screens to XML + VBPD fragments | High |
-| 2 | Add Hilt to replace manual DI | High |
-| 3 | Set up Firebase Auth (email/password + Google) | High |
-| 4 | Restructure flat `data/` into Clean Architecture layers | High |
-| 5 | Add `gradle/libs.versions.toml` version catalog | High |
-| 6 | Add Navigation Component + Safe Args | High |
-| 7 | Implement slot calendar + real-time Firestore listener | High |
-| 8 | Implement booking window enforcement logic | High |
-| 9 | Implement membership plan comparison screen | Medium |
-| 10 | Payment gateway for membership purchase | Not in scope yet |
-
----
-
-## What NOT to suggest
-
-- Do not use Jetpack Compose — this project uses XML layouts with VBPD
-- Do not use the old `_binding`/`onDestroyView` view binding pattern — all fragments use VBPD
-- Do not put Firebase credentials in the codebase — `google-services.json` is gitignored
-- Do not use `fallbackToDestructiveMigration` — proper migrations must be in place
-- Do not use `GlobalScope` — always use `viewModelScope` in ViewModels
-- Do not use Compose Navigation — use Navigation Component + Safe Args
-- Do not add a payment gateway yet — membership plan screen is UI-only for now
-- Do not increase slot granularity below 1 hour
-
----
-
-## How to start a new session
-
-Paste this file at the top of the conversation, then describe what you want to build next.
-Example: *"Here's my CLAUDE.md. I want to add a [feature]."*
+Share this file at the start of the conversation, then say what you want to build next.
+Example: *"Here's my CLAUDE.md. I want to add [feature]."*
