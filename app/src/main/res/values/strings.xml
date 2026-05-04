@@ -46,9 +46,23 @@
     <!-- My bookings -->
     <string name="my_bookings_empty">You don\'t have any upcoming bookings.</string>
 
-    <!-- Membership -->
+    <!-- Membership banner -->
     <string name="membership_banner_none">No membership · View plans →</string>
-    <string name="membership_plan_rally">Rally</string>
-    <string name="membership_plan_smash">Smash</string>
-    <string name="membership_plan_ace">Ace</string>
+
+    <!-- Membership screen -->
+    <string name="membership_title">Membership Plans</string>
+    <string name="membership_headline">Book smarter, play more.</string>
+    <string name="membership_subheadline">Members get 7-day early access to slots — for both badminton courts and cricket nets.</string>
+    <string name="perk_early_access">7-day early\naccess</string>
+    <string name="perk_cricket_access">Cricket nets\nincluded</string>
+    <string name="perk_save_more">Save more\nper session</string>
+    <string name="label_choose_plan">Choose a plan</string>
+    <string name="plan_badminton_sessions">🏸  %1$d badminton sessions / month</string>
+    <string name="plan_cricket_sessions">🏏  %1$d free cricket net sessions / month</string>
+    <string name="plan_recommended">BEST VALUE</string>
+    <string name="plan_feature_early_access">✓  Book 7 days before general opening</string>
+    <string name="plan_feature_priority">✓  Priority slot selection for both courts</string>
+    <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
+    <string name="plan_get_started">Get Started</string>
+    <string name="plan_current">Current Plan</string>
 </resources>

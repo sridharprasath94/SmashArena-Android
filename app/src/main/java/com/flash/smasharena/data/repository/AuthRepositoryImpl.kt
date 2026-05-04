@@ -1,6 +1,7 @@
 package com.flash.smasharena.data.repository
 
 import com.flash.smasharena.domain.repository.AuthRepository
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -10,6 +11,7 @@ import kotlin.coroutines.resumeWithException
 
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
+    private val googleSignInClient: GoogleSignInClient,
 ) : AuthRepository {
 
     override val isSignedIn: Boolean
@@ -43,5 +45,9 @@ class AuthRepositoryImpl @Inject constructor(
             }
         }
 
-    override fun signOut() = firebaseAuth.signOut()
+    override fun signOut() {
+        firebaseAuth.signOut()
+        // Revoke Google session so the account picker shows on next sign-in
+        googleSignInClient.signOut()
+    }
 }

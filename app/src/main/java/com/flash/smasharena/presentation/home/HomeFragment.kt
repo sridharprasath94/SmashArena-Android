@@ -29,6 +29,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         setupToolbar()
         setupFacilityCards()
+        setupMembershipBanner()
         observeUiState()
     }
 
@@ -68,6 +69,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             tvFacilityDescription.text = Facility.CRICKET_NET.description
             ivFacility.setImageResource(Facility.CRICKET_NET.imageRes)
             btnBook.setOnClickListener { navigateToSlots(Facility.CRICKET_NET) }
+        }
+    }
+
+    private fun setupMembershipBanner() {
+        binding.membershipBanner.root.setOnClickListener {
+            findNavController().navigate(R.id.action_homeFragment_to_membershipFragment)
         }
     }
 
