@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.smasharena"
+    namespace = "com.flash.smasharena"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.smasharena"
+        applicationId = "com.flash.smasharena"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

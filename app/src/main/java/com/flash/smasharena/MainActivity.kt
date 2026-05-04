@@ -1,4 +1,4 @@
-package com.smasharena
+package com.flash.smasharena
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,6 +11,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.smasharena.AppContainer
+import com.smasharena.SmashArenaApplication
 import com.smasharena.ui.booking.BookingScreen
 import com.smasharena.ui.courts.CourtsScreen
 import com.smasharena.ui.login.LoginScreen
