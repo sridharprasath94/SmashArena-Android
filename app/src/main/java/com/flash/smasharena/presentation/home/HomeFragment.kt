@@ -1,11 +1,8 @@
 package com.flash.smasharena.presentation.home
 
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
-import androidx.core.view.MenuProvider
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -36,28 +33,22 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun setupToolbar() {
-        requireActivity().addMenuProvider(object : MenuProvider {
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                menuInflater.inflate(R.menu.menu_home, menu)
-            }
+        (requireActivity() as AppCompatActivity).setSupportActionBar(binding.toolbar)
 
-            override fun onPrepareMenu(menu: Menu) {
-                val syncedAt = viewModel.uiState.value.lastSyncedAt
-                menu.findItem(R.id.menu_cloud_synced)?.title =
-                    if (syncedAt.isNotEmpty()) "Cloud Synced · $syncedAt"
-                    else getString(R.string.menu_cloud_synced)
-            }
-
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                return when (menuItem.itemId) {
-                    R.id.menu_logout -> {
-                        viewModel.signOut()
-                        true
-                    }
-                    else -> false
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.menu_logout -> {
+                    viewModel.signOut()
+                    true
                 }
+                else -> false
             }
-        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        }
+    }
+
+    private fun updateSyncLabel(syncedAt: String) {
+        binding.toolbar.menu.findItem(R.id.menu_cloud_synced)?.title =
+            if (syncedAt.isNotEmpty()) "Cloud Synced · $syncedAt" else getString(R.string.menu_cloud_synced)
     }
 
     private fun setupFacilityCards() {
@@ -81,6 +72,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     binding.progressBar.isVisible = state.isLoading
+                    updateSyncLabel(state.lastSyncedAt)
 
                     state.userProfile?.let { profile ->
                         binding.membershipBanner.tvMembershipStatus.text = when (profile.membershipTier) {
@@ -91,9 +83,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                     if (state.navigateToLogin) {
                         viewModel.onNavigatedToLogin()
-                        findNavController().navigate(
-                            R.id.action_homeFragment_to_loginFragment,
-                        )
+                        findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
                     }
                 }
             }
