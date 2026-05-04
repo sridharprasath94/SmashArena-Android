@@ -37,6 +37,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         binding.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.menu_my_bookings -> {
+                    findNavController().navigate(R.id.action_homeFragment_to_myBookingsFragment)
+                    true
+                }
                 R.id.menu_logout -> {
                     viewModel.signOut()
                     true
@@ -91,6 +95,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun navigateToSlots(facility: Facility) {
-        // TODO: navigate to SlotsFragment with facility.id
+        val action = HomeFragmentDirections.actionHomeFragmentToSlotsFragment(
+            facilityId = facility.id,
+            facilityName = getString(facility.nameRes),
+        )
+        findNavController().navigate(action)
     }
 }
