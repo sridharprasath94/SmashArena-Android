@@ -1,4 +1,4 @@
-package com.smasharena.data
+package com.flash.smasharena.data
 
 import androidx.room.Dao
 import androidx.room.Insert
