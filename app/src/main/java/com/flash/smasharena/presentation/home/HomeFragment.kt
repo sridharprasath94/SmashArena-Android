@@ -91,6 +91,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun navigateToSlots(facility: Facility) {
-        // TODO: navigate to SlotsFragment with facility.id
+        val action = HomeFragmentDirections.actionHomeFragmentToSlotsFragment(
+            facilityId = facility.id,
+            facilityName = getString(facility.nameRes),
+        )
+        findNavController().navigate(action)
     }
 }

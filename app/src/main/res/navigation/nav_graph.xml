@@ -25,6 +25,21 @@
             app:destination="@id/loginFragment"
             app:popUpTo="@id/homeFragment"
             app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_homeFragment_to_slotsFragment"
+            app:destination="@id/slotsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/slotsFragment"
+        android:name="com.flash.smasharena.presentation.slots.SlotsFragment"
+        android:label="Slots">
+        <argument
+            android:name="facilityId"
+            app:argType="string" />
+        <argument
+            android:name="facilityName"
+            app:argType="string" />
     </fragment>
 
 </navigation>
