@@ -1,0 +1,48 @@
+# Android / Gradle
+*.iml
+.gradle/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Firebase — never commit credentials
+google-services.json
+firebase.json
+.firebaserc
+firestore.rules
+firestore.indexes.json
+
+# Keystore / signing
+*.jks
+*.keystore
+keystore.properties
+
+# Local config
+local.properties
+
+# Test output
+/app/src/androidTest/java/com/smasharena/generated/
+/app/src/test/java/com/smasharena/generated/
+
+# Kotlin
+*.class
+*.kotlin_module
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini

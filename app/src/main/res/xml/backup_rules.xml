@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Default: back up everything except the Room DB. The DB is a cache of
+         server-issued bookings; in this prototype it's the source of truth, so
+         we leave it included. -->
+</full-backup-content>

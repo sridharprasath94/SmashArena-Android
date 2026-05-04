@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Smash Arena</string>
+
+    <!-- Login -->
+    <string name="login_title">Welcome to Smash Arena</string>
+    <string name="login_subtitle">Book your badminton court in seconds</string>
+    <string name="login_name_hint">Your name</string>
+    <string name="login_premium_label">I am a Premium member</string>
+    <string name="login_continue">Continue</string>
+
+    <!-- Courts -->
+    <string name="courts_title">Available Courts</string>
+    <string name="courts_my_bookings">My Bookings</string>
+
+    <!-- Booking -->
+    <string name="booking_title">Book %1$s</string>
+    <string name="booking_pick_date">Date</string>
+    <string name="booking_pick_start">Start time</string>
+    <string name="booking_pick_duration">Duration (minutes)</string>
+    <string name="booking_confirm">Confirm booking</string>
+    <string name="booking_peak_hint">Peak hours: 6:00 PM – 9:00 PM. Premium members get priority.</string>
+    <string name="booking_daily_cap_hint">You can book up to 2 hours total per day.</string>
+
+    <!-- Errors -->
+    <string name="error_daily_cap_exceeded">You can\'t book more than 2 hours of court time on the same day.</string>
+    <string name="error_peak_premium_only">This evening slot is held for Premium members. Upgrade to book peak hours.</string>
+    <string name="error_slot_taken">That slot is already booked. Please pick another time.</string>
+    <string name="error_invalid_duration">Please choose a duration between 30 and 120 minutes.</string>
+    <string name="error_in_past">You can\'t book a slot in the past.</string>
+    <string name="error_unknown">Something went wrong. Please try again.</string>
+
+    <!-- My bookings -->
+    <string name="my_bookings_empty">You don\'t have any upcoming bookings yet.</string>
+    <string name="my_bookings_cancel">Cancel</string>
+    <string name="booking_success">Booked! See you on the court.</string>
+</resources>
