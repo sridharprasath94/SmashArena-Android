@@ -2,7 +2,7 @@
 <resources>
     <style name="Theme.SmashArena" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:statusBarColor">@color/background</item>
-        <item name="android:navigationBarColor">@color/background</color>
+        <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowBackground">@color/background</item>
         <item name="colorPrimary">@color/accent_green</item>
         <item name="colorPrimaryVariant">@color/accent_green_dark</item>
