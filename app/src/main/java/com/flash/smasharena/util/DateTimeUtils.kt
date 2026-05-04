@@ -9,6 +9,7 @@ object DateTimeUtils {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val dayOfWeekFormat = SimpleDateFormat("EEE", Locale.getDefault())
+    private val displayDateFormat = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
 
     fun today(): String = dateFormat.format(Date())
 
@@ -27,6 +28,10 @@ object DateTimeUtils {
         cal.time = date
         return cal.get(Calendar.DAY_OF_MONTH).toString()
     }
+
+    /** Formats "yyyy-MM-dd" as "Mon, 5 May". */
+    fun displayDate(dateString: String): String =
+        dateFormat.parse(dateString)?.let { displayDateFormat.format(it) } ?: dateString
 
     /** Returns how many full days until the given date (negative = past). */
     fun daysUntil(dateString: String): Int {

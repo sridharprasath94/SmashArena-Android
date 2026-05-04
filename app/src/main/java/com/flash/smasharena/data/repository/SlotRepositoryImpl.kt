@@ -48,6 +48,27 @@ class SlotRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    override fun getMyBookings(): Flow<List<Slot>> = callbackFlow {
+        val uid = firebaseAuth.currentUser?.uid ?: run {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+        val today = com.flash.smasharena.util.DateTimeUtils.today()
+        val listener = firestore.collection("slots")
+            .whereEqualTo("bookedBy", uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) { close(error); return@addSnapshotListener }
+                val slots = snapshot?.documents
+                    ?.mapNotNull { it.toSlot() }
+                    ?.filter { it.date >= today }
+                    ?.sortedWith(compareBy({ it.date }, { it.hour }))
+                    ?: emptyList()
+                trySend(slots)
+            }
+        awaitClose { listener.remove() }
+    }
+
     override suspend fun bookSlot(facilityId: String, date: String, hour: Int): Result<Unit> =
         runCatching {
             val uid = firebaseAuth.currentUser?.uid ?: error("Not signed in")

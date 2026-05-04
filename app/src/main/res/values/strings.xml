@@ -15,9 +15,9 @@
     <string name="home_title">Book a facility</string>
     <string name="btn_book">Book Now</string>
     <string name="menu_cloud_synced">Cloud Synced</string>
-    <string name="menu_backup">Backup</string>
-    <string name="menu_share">Share</string>
+    <string name="menu_my_bookings">My Bookings</string>
     <string name="menu_logout">Log out</string>
+    <string name="my_bookings_title">My Bookings</string>
 
     <!-- Facilities -->
     <string name="facility_badminton">Badminton Court</string>

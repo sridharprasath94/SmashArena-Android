@@ -28,7 +28,15 @@
         <action
             android:id="@+id/action_homeFragment_to_slotsFragment"
             app:destination="@id/slotsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_myBookingsFragment"
+            app:destination="@id/myBookingsFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/myBookingsFragment"
+        android:name="com.flash.smasharena.presentation.mybookings.MyBookingsFragment"
+        android:label="My Bookings" />
 
     <fragment
         android:id="@+id/slotsFragment"
