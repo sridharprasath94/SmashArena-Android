@@ -1,0 +1,35 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400dp"
+    android:height="180dp"
+    android:viewportWidth="400"
+    android:viewportHeight="180">
+
+    <!-- Background -->
+    <path android:fillColor="#1A237E" android:pathData="M0,0h400v180H0z" />
+
+    <!-- Pitch strip -->
+    <path android:fillColor="#283593" android:pathData="M160,10h80v160h-80z" />
+
+    <!-- Net lines vertical -->
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M40,10v160" />
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M80,10v160" />
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M120,10v160" />
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M280,10v160" />
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M320,10v160" />
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M360,10v160" />
+
+    <!-- Net lines horizontal -->
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M40,50h320" />
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M40,90h320" />
+    <path android:strokeColor="#3949AB" android:strokeWidth="1.5" android:pathData="M40,130h320" />
+
+    <!-- Crease lines -->
+    <path android:strokeColor="#7986CB" android:strokeWidth="2" android:pathData="M160,40h80" />
+    <path android:strokeColor="#7986CB" android:strokeWidth="2" android:pathData="M160,140h80" />
+
+    <!-- Stumps -->
+    <path android:strokeColor="#C5CAE9" android:strokeWidth="3" android:pathData="M188,130v20" />
+    <path android:strokeColor="#C5CAE9" android:strokeWidth="3" android:pathData="M200,130v20" />
+    <path android:strokeColor="#C5CAE9" android:strokeWidth="3" android:pathData="M212,130v20" />
+
+</vector>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menu_cloud_synced"
+        android:title="@string/menu_cloud_synced"
+        android:enabled="false" />
+
+    <item
+        android:id="@+id/menu_backup"
+        android:title="@string/menu_backup" />
+
+    <item
+        android:id="@+id/menu_share"
+        android:title="@string/menu_share" />
+
+    <item
+        android:id="@+id/menu_logout"
+        android:title="@string/menu_logout" />
+
+</menu>

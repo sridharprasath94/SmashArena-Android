@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400dp"
+    android:height="180dp"
+    android:viewportWidth="400"
+    android:viewportHeight="180">
+
+    <!-- Background -->
+    <path android:fillColor="#1B4332" android:pathData="M0,0h400v180H0z" />
+
+    <!-- Court lines -->
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M40,20v140" />
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M360,20v140" />
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M40,20h320" />
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M40,160h320" />
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M200,20v140" />
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M40,90h320" />
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M120,20v140" />
+    <path android:strokeColor="#2D6A4F" android:strokeWidth="2" android:pathData="M280,20v140" />
+
+    <!-- Net -->
+    <path android:strokeColor="#B7E4C7" android:strokeWidth="3" android:pathData="M40,90h320" />
+
+    <!-- Label -->
+    <path android:fillColor="#B7E4C7"
+        android:pathData="M160,75 Q200,65 240,75 Q200,85 160,75Z" />
+
+</vector>
