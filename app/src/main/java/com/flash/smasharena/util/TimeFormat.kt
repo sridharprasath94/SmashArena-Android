@@ -1,4 +1,4 @@
-package com.smasharena.util
+package com.flash.smasharena.util
 
 import java.time.Instant
 import java.time.LocalDate

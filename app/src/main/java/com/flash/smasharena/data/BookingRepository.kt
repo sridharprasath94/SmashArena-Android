@@ -1,6 +1,7 @@
-package com.smasharena.data
+package com.flash.smasharena.data
 
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -114,7 +115,7 @@ class BookingRepository(
 
     /** Calendar-day [start, endExclusive) for a moment, in the configured zone. */
     private fun dayBoundsFor(epochMs: Long): Pair<Long, Long> {
-        val zdt = ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(epochMs), zoneId)
+        val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMs), zoneId)
         val startOfDay = zdt.toLocalDate().atStartOfDay(zoneId)
         val nextDay = startOfDay.plusDays(1)
         return startOfDay.toInstant().toEpochMilli() to nextDay.toInstant().toEpochMilli()
@@ -122,7 +123,7 @@ class BookingRepository(
 
     /** [start, endExclusive) of the peak window for the day containing epochMs. */
     private fun peakWindowFor(epochMs: Long): Pair<Long, Long> {
-        val zdt = ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(epochMs), zoneId)
+        val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMs), zoneId)
         val day = zdt.toLocalDate()
         val peakStart = day.atTime(PEAK_START).atZone(zoneId).toInstant().toEpochMilli()
         val peakEnd = day.atTime(PEAK_END).atZone(zoneId).toInstant().toEpochMilli()

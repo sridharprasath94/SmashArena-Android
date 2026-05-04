@@ -1,5 +1,13 @@
 package com.smasharena.data
 
+import com.flash.smasharena.data.Booking
+import com.flash.smasharena.data.BookingDao
+import com.flash.smasharena.data.BookingRepository
+import com.flash.smasharena.data.BookingResult
+import com.flash.smasharena.data.Court
+import com.flash.smasharena.data.CourtDao
+import com.flash.smasharena.data.User
+import com.flash.smasharena.data.UserDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -11,7 +19,7 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 /**
- * In-memory fakes so the rule logic in [BookingRepository] can be tested
+ * In-memory fakes so the rule logic in [com.flash.smasharena.data.BookingRepository] can be tested
  * without Room. Each test pins both the clock and the time-zone so the
  * peak-window logic is deterministic regardless of the host machine.
  */

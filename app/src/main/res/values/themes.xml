@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base XML theme used until Compose takes over. Material 3 dynamic colors
-         apply on Android 12+; older devices fall back to the seed color above. -->
-    <style name="Theme.SmashArena" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">@color/seed_green_dark</item>
-        <item name="android:windowBackground">@color/white</item>
+    <style name="Theme.SmashArena" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</color>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="colorPrimary">@color/accent_green</item>
+        <item name="colorPrimaryVariant">@color/accent_green_dark</item>
+        <item name="colorOnPrimary">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
     </style>
 </resources>
