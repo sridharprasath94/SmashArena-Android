@@ -13,13 +13,13 @@ enum class Facility(
     BADMINTON_COURT(
         id = "badminton_court_1",
         nameRes = R.string.facility_badminton,
-        imageRes = R.drawable.img_badminton_court,
+        imageRes = R.drawable.badminton,
         description = "05:00 – 22:00 · 1-hour sessions",
     ),
     CRICKET_NET(
         id = "cricket_net_1",
         nameRes = R.string.facility_cricket,
-        imageRes = R.drawable.img_cricket_net,
+        imageRes = R.drawable.cricket,
         description = "05:00 – 22:00 · 1-hour sessions",
     ),
 }
