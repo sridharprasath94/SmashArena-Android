@@ -24,5 +24,7 @@ data class SlotsUiState(
     val selectedSlot: DisplaySlot? = null,
     val isBooking: Boolean = false,
     val bookingSuccess: Boolean = false,
+    val isCancelling: Boolean = false,
+    val cancelSuccess: Boolean = false,
     val error: String? = null,
 )

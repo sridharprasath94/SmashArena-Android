@@ -15,4 +15,6 @@
     <color name="slot_member_hold">#3E2800</color>
     <color name="slot_locked">#1E1E1E</color>
     <color name="slot_my_booking">#0D2744</color>
+    <color name="slot_my_booking_selected">#1A4A80</color>
+    <color name="cancel_action">#CF6679</color>
 </resources>

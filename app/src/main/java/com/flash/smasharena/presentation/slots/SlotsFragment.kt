@@ -1,7 +1,9 @@
 package com.flash.smasharena.presentation.slots
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -13,6 +15,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentSlotsBinding
+import com.flash.smasharena.domain.model.SlotStatus
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -59,7 +62,32 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     }
 
     private fun setupBookButton() {
-        binding.btnBook.setOnClickListener { showBookingConfirmation() }
+        binding.btnBook.setOnClickListener {
+            val slot = viewModel.uiState.value.selectedSlot ?: return@setOnClickListener
+            if (slot.effectiveStatus == SlotStatus.MY_BOOKING) showCancelConfirmation()
+            else showBookingConfirmation()
+        }
+    }
+
+    private fun showCancelConfirmation() {
+        val state = viewModel.uiState.value
+        val slot = state.selectedSlot ?: return
+        val dateItem = state.dates.find { it.isSelected }
+        val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_cancel_booking_title)
+            .setMessage(
+                getString(
+                    R.string.dialog_cancel_booking_message,
+                    state.facilityName,
+                    dateLabel,
+                    slot.timeLabel,
+                )
+            )
+            .setPositiveButton(R.string.dialog_cancel_booking_confirm) { _, _ -> viewModel.cancelSelectedSlot() }
+            .setNegativeButton(R.string.dialog_keep, null)
+            .show()
     }
 
     private fun showBookingConfirmation() {
@@ -93,15 +121,34 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
                     dateAdapter.submitList(state.dates)
                     slotAdapter.submitList(state.slots)
 
-                    binding.btnBook.isVisible = state.selectedSlot != null && !state.isBooking
+                    val busy = state.isBooking || state.isCancelling
+                    val isCancelSelected = state.selectedSlot?.effectiveStatus == SlotStatus.MY_BOOKING
+                    binding.btnBook.isVisible = state.selectedSlot != null && !busy
                     binding.btnBook.text = state.selectedSlot?.let {
-                        "Book ${it.timeLabel}"
+                        if (isCancelSelected) "Cancel ${it.timeLabel}" else "Book ${it.timeLabel}"
                     } ?: getString(R.string.booking_confirm)
-                    binding.progressBooking.isVisible = state.isBooking
+                    binding.btnBook.backgroundTintList = ColorStateList.valueOf(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            if (isCancelSelected) R.color.cancel_action else R.color.accent_green,
+                        )
+                    )
+                    binding.btnBook.setTextColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            if (isCancelSelected) R.color.text_primary else R.color.background,
+                        )
+                    )
+                    binding.progressBooking.isVisible = busy
 
                     if (state.bookingSuccess) {
                         viewModel.onBookingSuccessShown()
                         Snackbar.make(requireView(), R.string.booking_success, Snackbar.LENGTH_LONG).show()
+                    }
+
+                    if (state.cancelSuccess) {
+                        viewModel.onCancelSuccessShown()
+                        Snackbar.make(requireView(), R.string.booking_cancelled, Snackbar.LENGTH_LONG).show()
                     }
 
                     state.error?.let {

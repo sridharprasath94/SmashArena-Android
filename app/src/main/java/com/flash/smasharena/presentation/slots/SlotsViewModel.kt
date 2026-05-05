@@ -99,7 +99,7 @@ class SlotsViewModel @Inject constructor(
     }
 
     fun selectSlot(slot: DisplaySlot) {
-        if (slot.effectiveStatus != SlotStatus.AVAILABLE) return
+        if (slot.effectiveStatus != SlotStatus.AVAILABLE && slot.effectiveStatus != SlotStatus.MY_BOOKING) return
         val alreadySelected = _uiState.value.selectedSlot?.hour == slot.hour
         val newSelected = if (alreadySelected) null else slot
         _uiState.update { state ->
@@ -125,6 +125,23 @@ class SlotsViewModel @Inject constructor(
         }
     }
 
+    fun cancelSelectedSlot() {
+        val slot = _uiState.value.selectedSlot ?: return
+        val date = _uiState.value.dates.find { it.isSelected }?.dateString ?: return
+        val docId = "${facilityId}_${date}_${slot.hour}"
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCancelling = true, error = null) }
+            slotRepository.cancelBooking(docId)
+                .onSuccess {
+                    _uiState.update { it.copy(isCancelling = false, cancelSuccess = true, selectedSlot = null) }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(isCancelling = false, error = e.message) }
+                }
+        }
+    }
+
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
     fun onBookingSuccessShown() = _uiState.update { it.copy(bookingSuccess = false) }
+    fun onCancelSuccessShown() = _uiState.update { it.copy(cancelSuccess = false) }
 }

@@ -27,6 +27,7 @@
     <string name="booking_title">Book %1$s</string>
     <string name="booking_confirm">Confirm booking</string>
     <string name="booking_success">Slot booked! See you there.</string>
+    <string name="booking_cancelled">Booking cancelled.</string>
 
     <!-- Slots screen -->
     <string name="label_select_date">Select a date</string>
