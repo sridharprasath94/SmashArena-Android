@@ -58,6 +58,11 @@
     <string name="dialog_keep">Keep it</string>
     <string name="booking_cancel">Cancel</string>
 
+    <!-- Consecutive booking limit -->
+    <string name="dialog_consecutive_limit_title">Session Limit Reached</string>
+    <string name="dialog_consecutive_limit_message">You can only book up to 2 back-to-back slots at a time. Please leave room for other members, or cancel an existing slot first.</string>
+    <string name="dialog_got_it">Got it</string>
+
     <!-- Errors -->
     <string name="error_no_internet">No internet connection. Please check your network and try again.</string>
     <string name="error_service_unavailable">Service is temporarily unavailable. Please try again in a moment.</string>

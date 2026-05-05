@@ -65,9 +65,17 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     private fun setupBookButton() {
         binding.btnBook.setOnClickListener {
             val slot = viewModel.uiState.value.selectedSlot ?: return@setOnClickListener
-            if (slot.effectiveStatus == SlotStatus.MY_BOOKING) showCancelConfirmation()
-            else showBookingConfirmation()
+            when {
+                slot.effectiveStatus == SlotStatus.MY_BOOKING -> showCancelConfirmation()
+                viewModel.wouldExceedConsecutiveLimit() -> showConsecutiveLimitDialog()
+                else -> showBookingConfirmation()
+            }
         }
+    }
+
+    private fun showConsecutiveLimitDialog() {
+        ConfirmationDialog.limitReached(getString(R.string.dialog_consecutive_limit_message))
+            .show(childFragmentManager, "consecutive_limit")
     }
 
     private fun setupConfirmationListeners() {
