@@ -141,14 +141,10 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
                     )
                     binding.progressBooking.isVisible = busy
 
-                    if (state.bookingSuccess) {
-                        viewModel.onBookingSuccessShown()
-                        Snackbar.make(requireView(), R.string.booking_success, Snackbar.LENGTH_LONG).show()
-                    }
-
-                    if (state.cancelSuccess) {
-                        viewModel.onCancelSuccessShown()
-                        Snackbar.make(requireView(), R.string.booking_cancelled, Snackbar.LENGTH_LONG).show()
+                    state.bookingResultInfo?.let { info ->
+                        viewModel.onResultShown()
+                        BookingResultDialog.newInstance(info)
+                            .show(childFragmentManager, "booking_result")
                     }
 
                     state.error?.let {

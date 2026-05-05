@@ -112,12 +112,23 @@ class SlotsViewModel @Inject constructor(
 
     fun bookSelectedSlot() {
         val slot = _uiState.value.selectedSlot ?: return
-        val date = _uiState.value.dates.find { it.isSelected }?.dateString ?: return
+        val dateItem = _uiState.value.dates.find { it.isSelected } ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isBooking = true, error = null) }
-            slotRepository.bookSlot(facilityId, date, slot.hour)
+            slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour)
                 .onSuccess {
-                    _uiState.update { it.copy(isBooking = false, bookingSuccess = true, selectedSlot = null) }
+                    _uiState.update {
+                        it.copy(
+                            isBooking = false,
+                            selectedSlot = null,
+                            bookingResultInfo = BookingResultInfo(
+                                type = ResultType.BOOKED,
+                                facilityName = facilityName,
+                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+                                timeLabel = slot.timeLabel,
+                            )
+                        )
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(isBooking = false, error = e.message) }
@@ -127,13 +138,24 @@ class SlotsViewModel @Inject constructor(
 
     fun cancelSelectedSlot() {
         val slot = _uiState.value.selectedSlot ?: return
-        val date = _uiState.value.dates.find { it.isSelected }?.dateString ?: return
-        val docId = "${facilityId}_${date}_${slot.hour}"
+        val dateItem = _uiState.value.dates.find { it.isSelected } ?: return
+        val docId = "${facilityId}_${dateItem.dateString}_${slot.hour}"
         viewModelScope.launch {
             _uiState.update { it.copy(isCancelling = true, error = null) }
             slotRepository.cancelBooking(docId)
                 .onSuccess {
-                    _uiState.update { it.copy(isCancelling = false, cancelSuccess = true, selectedSlot = null) }
+                    _uiState.update {
+                        it.copy(
+                            isCancelling = false,
+                            selectedSlot = null,
+                            bookingResultInfo = BookingResultInfo(
+                                type = ResultType.CANCELLED,
+                                facilityName = facilityName,
+                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+                                timeLabel = slot.timeLabel,
+                            )
+                        )
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(isCancelling = false, error = e.message) }
@@ -142,6 +164,5 @@ class SlotsViewModel @Inject constructor(
     }
 
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
-    fun onBookingSuccessShown() = _uiState.update { it.copy(bookingSuccess = false) }
-    fun onCancelSuccessShown() = _uiState.update { it.copy(cancelSuccess = false) }
+    fun onResultShown() = _uiState.update { it.copy(bookingResultInfo = null) }
 }

@@ -17,4 +17,6 @@
     <color name="slot_my_booking">#0D2744</color>
     <color name="slot_my_booking_selected">#1A4A80</color>
     <color name="cancel_action">#CF6679</color>
+    <color name="icon_bg_success">#33B5D86C</color>
+    <color name="icon_bg_cancel">#33CF6679</color>
 </resources>
