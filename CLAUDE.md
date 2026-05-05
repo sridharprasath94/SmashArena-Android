@@ -1,9 +1,31 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # SmashArena – Claude Working Brief
 
 Android sports facility booking app. Users sign in, browse a badminton court and cricket net, check real-time slot availability on a 14-day calendar, and make hourly bookings. Members get early access based on their plan tier.
 
 **Package:** `com.flash.smasharena`
 **Min SDK:** 24 | **Target SDK:** 35
+
+---
+
+## Build & Test Commands
+
+The project has no `gradlew` wrapper committed. Generate it first if missing:
+```
+gradle wrapper --gradle-version 8.13
+```
+
+| Task | Command |
+|---|---|
+| Build debug APK | `./gradlew :app:assembleDebug` |
+| Run unit tests | `./gradlew :app:testDebugUnitTest` |
+| Run a single test class | `./gradlew :app:testDebugUnitTest --tests "com.smasharena.data.BookingRepositoryTest"` |
+| Lint | `./gradlew :app:lintDebug` |
+
+Alternatively, use **Build → Make Project** / **Run** in Android Studio (Meerkat or newer).
 
 ---
 
@@ -68,8 +90,8 @@ Android sports facility booking app. Users sign in, browse a badminton court and
 - All tiers get the same **7-day early booking window** (days 7–6 before the slot)
 - Non-members can book during days 5–0 only
 - **Cricket net membership is separate** — plans TBD, not yet implemented
-- Membership UI: subtle banner on Home screen → taps open a plan comparison screen (not built yet)
-- No payment gateway — membership plan screen is UI-only for now
+- Membership UI: subtle banner on Home screen → taps open `MembershipFragment` (plan comparison screen)
+- No payment gateway — membership plan screen is UI-only
 
 ---
 
@@ -159,7 +181,7 @@ app/src/main/java/com/flash/smasharena/
 │   │   └── UserProfile.kt            — Data class (isMember, sessionsRemaining as computed)
 │   └── repository/
 │       ├── AuthRepository.kt
-│       ├── SlotRepository.kt         — observeSlots(), getMyBookings(), bookSlot()
+│       ├── SlotRepository.kt         — observeSlots(), getMyBookings(), bookSlot(), cancelBooking()
 │       └── UserRepository.kt
 ├── presentation/
 │   ├── login/
@@ -176,6 +198,11 @@ app/src/main/java/com/flash/smasharena/
 │   │   ├── SlotsUiState.kt           — DateItem, DisplaySlot, SlotsUiState
 │   │   ├── DateAdapter.kt            — Horizontal date strip (ListAdapter)
 │   │   └── SlotAdapter.kt            — 3-column slot grid (ListAdapter)
+│   ├── membership/
+│   │   ├── MembershipFragment.kt     — Plan comparison screen (UI-only, no payment)
+│   │   ├── MembershipViewModel.kt
+│   │   ├── MembershipUiState.kt
+│   │   └── PlanAdapter.kt            — RecyclerView adapter for plan cards
 │   └── mybookings/
 │       ├── MyBookingsFragment.kt
 │       ├── MyBookingsViewModel.kt
@@ -196,6 +223,7 @@ loginFragment (start)
   └─► homeFragment  (popUpTo loginFragment inclusive)
         ├─► slotsFragment  (args: facilityId: String, facilityName: String)
         ├─► myBookingsFragment
+        ├─► membershipFragment
         └─► loginFragment  (logout — popUpTo homeFragment inclusive)
 ```
 
@@ -227,6 +255,12 @@ loginFragment (start)
 - Real-time Firestore listener (`callbackFlow` with `whereEqualTo("bookedBy", uid)`)
 - Client-side filtered and sorted (date asc, hour asc) — no composite Firestore index needed
 - Empty state text when no upcoming bookings
+- Cancel booking button calls `SlotRepository.cancelBooking(docId)` — verifies ownership in a Firestore transaction, then deletes the document
+
+### Membership (`MembershipFragment`)
+- Plan comparison screen with `PlanAdapter` (RecyclerView, LinearLayoutManager)
+- UI-only — no payment flow
+- Navigated to from the membership banner on Home
 
 ---
 
@@ -317,12 +351,10 @@ viewLifecycleOwner.lifecycleScope.launch {
 
 | # | Feature | Notes |
 |---|---|---|
-| 1 | Membership plan comparison screen | UI only, no payment. Navigate from membership banner on Home. |
-| 2 | Booking cancellation | From My Bookings screen. Delete Firestore doc + decrement sessionsUsed. |
-| 3 | Cricket net membership plans | Separate from badminton. Plans/pricing TBD. |
-| 4 | Session quota enforcement on booking | Check `sessionsUsed < sessionsQuota` before writing to Firestore. |
-| 5 | Replace placeholder facility images | `img_badminton_court.xml` and `img_cricket_net.xml` are vector placeholders. |
-| 6 | My Bookings screen — past bookings tab | Currently only shows upcoming (date >= today). |
+| 1 | Cricket net membership plans | Separate from badminton. Plans/pricing TBD. |
+| 2 | Session quota enforcement on booking | Check `sessionsUsed < sessionsQuota` before writing to Firestore. |
+| 3 | Replace placeholder facility images | `img_badminton_court.xml` and `img_cricket_net.xml` are vector placeholders. |
+| 4 | My Bookings screen — past bookings tab | Currently only shows upcoming (date >= today). |
 
 ---
 
