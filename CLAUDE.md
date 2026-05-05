@@ -165,8 +165,8 @@ app/src/main/java/com/flash/smasharena/
 │   ├── User.kt, UserDao.kt                               — legacy Room files (unused, keep)
 │   ├── SmashArenaDatabase.kt                             — Room DB (entities: User, Court, Booking)
 │   └── repository/
-│       ├── AuthRepositoryImpl.kt     — Firebase Auth (email + Google)
-│       ├── SlotRepositoryImpl.kt     — Firestore slots (callbackFlow + transaction)
+│       ├── AuthRepositoryImpl.kt     — Firebase Auth (email + Google); checks connectivity before each call
+│       ├── SlotRepositoryImpl.kt     — Firestore slots (callbackFlow + transaction); checks connectivity before writes
 │       └── UserRepositoryImpl.kt     — Firestore user profile (get-or-create)
 ├── di/
 │   ├── DatabaseModule.kt             — Provides Room DB + DAOs
@@ -174,6 +174,7 @@ app/src/main/java/com/flash/smasharena/
 │   └── RepositoryModule.kt           — @Binds Auth/User/SlotRepository
 ├── domain/
 │   ├── model/
+│   │   ├── AppError.kt               — Sealed class: NoInternet, NotSignedIn, SlotAlreadyBooked, auth errors, etc.
 │   │   ├── Facility.kt               — Enum: BADMINTON_COURT, CRICKET_NET (id, nameRes, imageRes)
 │   │   ├── MembershipTier.kt         — Enum: NONE, RALLY, SMASH, ACE (price, quota)
 │   │   ├── Slot.kt                   — Data class (docId and timeLabel as computed properties)
@@ -187,7 +188,7 @@ app/src/main/java/com/flash/smasharena/
 │   ├── login/
 │   │   ├── LoginFragment.kt
 │   │   ├── LoginViewModel.kt
-│   │   └── LoginUiState.kt
+│   │   └── LoginUiState.kt           — generalError: AppError?
 │   ├── home/
 │   │   ├── HomeFragment.kt
 │   │   ├── HomeViewModel.kt
@@ -195,9 +196,11 @@ app/src/main/java/com/flash/smasharena/
 │   ├── slots/
 │   │   ├── SlotsFragment.kt
 │   │   ├── SlotsViewModel.kt         — SavedStateHandle for facilityId/facilityName
-│   │   ├── SlotsUiState.kt           — DateItem, DisplaySlot, SlotsUiState
+│   │   ├── SlotsUiState.kt           — DateItem, DisplaySlot, BookingResultInfo, ResultType, SlotsUiState
 │   │   ├── DateAdapter.kt            — Horizontal date strip (ListAdapter)
-│   │   └── SlotAdapter.kt            — 3-column slot grid (ListAdapter)
+│   │   ├── SlotAdapter.kt            — 3-column slot grid (ListAdapter)
+│   │   ├── BookingResultDialog.kt    — Animated result dialog (booking confirmed / cancelled)
+│   │   └── ConfirmationDialog.kt     — Animated confirmation dialog (book / cancel / logout)
 │   ├── membership/
 │   │   ├── MembershipFragment.kt     — Plan comparison screen (UI-only, no payment)
 │   │   ├── MembershipViewModel.kt
@@ -206,11 +209,14 @@ app/src/main/java/com/flash/smasharena/
 │   └── mybookings/
 │       ├── MyBookingsFragment.kt
 │       ├── MyBookingsViewModel.kt
-│       ├── MyBookingsUiState.kt      — BookingItem, MyBookingsUiState
+│       ├── MyBookingsUiState.kt      — BookingItem, MyBookingsUiState (error: AppError?)
 │       └── BookingAdapter.kt
 └── util/
-    ├── DateTimeUtils.kt              — today(), dateWithOffset(), displayDate(), daysUntil(), etc.
+    ├── AppErrorExt.kt                — AppError.toUserMessage(context): String
     ├── BookingWindowUtils.kt         — effectiveStatus(), isDateBrowsable()
+    ├── DateTimeUtils.kt              — today(), dateWithOffset(), displayDate(), daysUntil(), etc.
+    ├── ErrorMapper.kt                — Throwable.toAppError(): AppError (maps Firebase exceptions by class)
+    ├── NetworkMonitor.kt             — @Singleton; isConnected() via ConnectivityManager + NET_CAPABILITY_VALIDATED
     └── TimeFormat.kt
 ```
 
@@ -235,27 +241,34 @@ loginFragment (start)
 - Email + password fields (TextInputLayout outlined)
 - Sign in / Create account / Sign in with Google buttons
 - `ActivityResultLauncher` for Google Sign-In intent
-- Errors shown inline (Snackbar), never Toast
+- Validation errors shown on TextInputLayout fields; Firebase auth errors shown as Snackbar
+- `generalError: AppError?` in UiState — mapped to strings via `AppError.toUserMessage()`
 
 ### Home (`HomeFragment`)
 - Two facility cards (Badminton Court, Cricket Net) — tap → SlotsFragment
 - Membership banner at bottom — shows tier + sessions remaining (or "No membership · View plans →")
 - Toolbar menu: **Cloud Synced** (disabled, shows last sync time) | **My Bookings** | **Log out**
 - `setSupportActionBar(binding.toolbar)` called here (not in MainActivity)
+- Log out uses `ConfirmationDialog` (type LOGOUT) — result via `setFragmentResult(REQUEST_LOGOUT)`
 
 ### Slots (`SlotsFragment`)
 - 14-day horizontal date strip; non-browsable dates are dimmed
 - 3-column slot grid colored by status (green=available, grey=booked, amber=member-hold, dark=locked, blue=mine)
-- Tapping an available slot selects it → floating "Book HH:00 – HH:00" button appears
+- Tapping an available slot selects it → floating "Book HH:00 – HH:00" button appears (green)
+- Tapping a MY_BOOKING slot selects it → floating "Cancel HH:00 – HH:00" button appears (rose)
+- Book/cancel both show a `ConfirmationDialog` before acting
+- After success, a `BookingResultDialog` is shown (animated icon + facility + date/time + Done button)
 - Firestore listener restarted when date changes (`slotObserverJob?.cancel()`)
 - Real-time updates (another user booking reflects immediately)
+- Errors shown as Snackbar using `AppError.toUserMessage()`
 
 ### My Bookings (`MyBookingsFragment`)
 - Lists all upcoming bookings for the current user (today and later)
 - Real-time Firestore listener (`callbackFlow` with `whereEqualTo("bookedBy", uid)`)
 - Client-side filtered and sorted (date asc, hour asc) — no composite Firestore index needed
 - Empty state text when no upcoming bookings
-- Cancel booking button calls `SlotRepository.cancelBooking(docId)` — verifies ownership in a Firestore transaction, then deletes the document
+- Cancel confirmation uses `ConfirmationDialog` — docId travels through the result Bundle
+- `SlotRepository.cancelBooking(docId)` verifies ownership in a Firestore transaction, then deletes
 
 ### Membership (`MembershipFragment`)
 - Plan comparison screen with `PlanAdapter` (RecyclerView, LinearLayoutManager)
@@ -271,15 +284,29 @@ loginFragment (start)
 suspendCancellableCoroutine { cont ->
     task
         .addOnSuccessListener { cont.resume(Unit) }
-        .addOnFailureListener { cont.resumeWithException(it) }
+        .addOnFailureListener { cont.resumeWithException(it.toAppError()) }
 }
 ```
 No `kotlinx-coroutines-play-services` dependency needed.
 
+### Connectivity check (repositories)
+```kotlin
+if (!networkMonitor.isConnected()) throw AppError.NoInternet
+```
+Called at the start of every write operation (`bookSlot`, `cancelBooking`, all auth calls).
+
+### Error flow
+```
+Repository            → throws AppError (via toAppError() or directly)
+ViewModel.onFailure   → _uiState.update { it.copy(error = e.toAppError()) }
+Fragment              → error.toUserMessage(requireContext()) → Snackbar
+```
+`AppError` is a sealed class in `domain/model/`. `ErrorMapper.toAppError()` matches Firebase exception classes first, then falls back to message-string matching.
+
 ### Slot observation (callbackFlow)
 ```kotlin
 val listener = query.addSnapshotListener { snapshot, error ->
-    if (error != null) { close(error); return@addSnapshotListener }
+    if (error != null) { close(error.toAppError()); return@addSnapshotListener }
     trySend(/* mapped list */)
 }
 awaitClose { listener.remove() }
@@ -289,18 +316,54 @@ awaitClose { listener.remove() }
 ```kotlin
 firestore.runTransaction { tx ->
     val snap = tx.get(docRef)
-    if (snap.exists() && snap.getString("status") == "booked") throw Exception("...")
+    if (snap.exists() && snap.getString("status") == "booked") throw AppError.SlotAlreadyBooked
     tx.set(docRef, mapOf(...))
 }
 ```
 
-### View Binding (all fragments)
+### ConfirmationDialog (all confirmation flows)
+All confirmation dialogs use `ConfirmationDialog` — never `MaterialAlertDialogBuilder`.
+```kotlin
+// Show
+ConfirmationDialog.book(facilityName, dateLabel, timeLabel)
+    .show(childFragmentManager, "confirm_book")
+
+// Listen (in onViewCreated)
+childFragmentManager.setFragmentResultListener(ConfirmationDialog.REQUEST_BOOK, viewLifecycleOwner) { _, _ ->
+    viewModel.bookSelectedSlot()
+}
+```
+Factory methods: `book()`, `cancelSlot()`, `cancelBooking(docId)`, `logout(message)`.  
+Request keys: `REQUEST_BOOK`, `REQUEST_CANCEL_SLOT`, `REQUEST_CANCEL_BOOKING`, `REQUEST_LOGOUT`.  
+The docId for My Bookings cancellation travels inside the result `Bundle` via `KEY_DOC_ID`.
+
+### BookingResultDialog (success feedback)
+Shown after a successful booking or cancellation — never use Snackbar for success.
+```kotlin
+// ViewModel emits BookingResultInfo in SlotsUiState
+bookingResultInfo = BookingResultInfo(type = ResultType.BOOKED, facilityName, dateLabel, timeLabel)
+
+// Fragment shows dialog
+state.bookingResultInfo?.let { info ->
+    viewModel.onResultShown()
+    BookingResultDialog.newInstance(info).show(childFragmentManager, "booking_result")
+}
+```
+
+### Animated dialog style (both dialog types)
+Both `ConfirmationDialog` and `BookingResultDialog` use:
+- `setStyle(STYLE_NO_TITLE, R.style.Theme_SmashArena_ResultDialog)` — transparent window, `dialog_enter`/`dialog_exit` animations
+- `dialog?.window?.setLayout((widthPixels * 0.88).toInt(), WRAP_CONTENT)` in `onStart()`
+- Icon circle animated with `OvershootInterpolator(2.8f)` scaled 0→1 after 80ms delay
+
+### View Binding (all fragments including DialogFragments)
 ```kotlin
 class FooFragment : Fragment(R.layout.fragment_foo) {
     private val binding by viewBinding(FooBinding::bind)
     // No _binding, no onDestroyView null-out
 }
 ```
+Also works for `DialogFragment(R.layout.xxx)`.
 
 ### UI state collection
 ```kotlin
@@ -318,17 +381,21 @@ viewLifecycleOwner.lifecycleScope.launch {
 | Token | Hex | Usage |
 |---|---|---|
 | `background` | `#1A1A1A` | Screen backgrounds |
-| `surface` | `#242424` | Cards |
+| `surface` | `#242424` | Cards, dialog backgrounds |
 | `accent_green` | `#B5D86C` | Buttons, selected state, booking time text |
 | `text_primary` | `#FFFFFF` | Primary text |
 | `text_secondary` | `#B0B0B0` | Labels, secondary info |
 | `outline` | `#3A3A3A` | Card borders |
+| `cancel_action` | `#CF6679` | Cancel/logout button background, destructive actions |
 | `slot_available` | `#1E3A1E` | Available slot card |
-| `slot_selected` | `#2D5A2D` | Selected slot card |
+| `slot_selected` | `#2D5A2D` | Selected available slot card |
 | `slot_booked` | `#2E2E2E` | Booked slot card |
 | `slot_member_hold` | `#3E2800` | Member-only slot card |
 | `slot_locked` | `#1E1E1E` | Locked/unavailable slot card |
 | `slot_my_booking` | `#0D2744` | User's own booking card |
+| `slot_my_booking_selected` | `#1A4A80` | User's own booking card (selected) |
+| `icon_bg_success` | `#33B5D86C` | Icon circle background for success/book dialogs |
+| `icon_bg_cancel` | `#33CF6679` | Icon circle background for cancel/logout dialogs |
 
 ---
 
@@ -344,6 +411,10 @@ viewLifecycleOwner.lifecycleScope.launch {
 - Do NOT implement a payment gateway — membership screens are UI-only for now
 - Do NOT use `java.time` APIs — use `java.util.Calendar` / `SimpleDateFormat` for API 24 compatibility
 - Do NOT commit `google-services.json` — it is gitignored
+- Do NOT use `MaterialAlertDialogBuilder` for confirmation dialogs — use `ConfirmationDialog` instead
+- Do NOT show Snackbar for booking/cancellation success — use `BookingResultDialog` instead
+- Do NOT put raw exception messages in UiState — map through `Throwable.toAppError()` first
+- Do NOT put user-facing strings in ViewModels — map `AppError` to strings in the Fragment via `toUserMessage(context)`
 
 ---
 
