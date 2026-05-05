@@ -32,8 +32,8 @@ data class SlotsUiState(
     val dates: List<DateItem> = emptyList(),
     val slots: List<DisplaySlot> = emptyList(),
     val selectedSlot: DisplaySlot? = null,
-    val isBooking: Boolean = false,
     val isCancelling: Boolean = false,
+    val isBookingFree: Boolean = false,
     val bookingResultInfo: BookingResultInfo? = null,
     val error: AppError? = null,
 )

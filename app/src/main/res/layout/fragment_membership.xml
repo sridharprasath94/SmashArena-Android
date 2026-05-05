@@ -161,10 +161,22 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
-                android:paddingBottom="32dp"
                 android:clipToPadding="false"
                 android:overScrollMode="never"
                 android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
+            <!-- Cancel membership -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cancel_membership"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="32dp"
+                android:text="@string/membership_cancel_btn"
+                android:textColor="@color/cancel_action"
                 android:visibility="gone" />
 
         </LinearLayout>

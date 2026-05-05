@@ -58,6 +58,15 @@
     <string name="dialog_keep">Keep it</string>
     <string name="booking_cancel">Cancel</string>
 
+    <!-- Payment -->
+    <string name="payment_order_summary">Order Summary</string>
+    <string name="payment_total">Total</string>
+    <string name="payment_method_label">Payment Method</string>
+    <string name="payment_method_upi">UPI</string>
+    <string name="payment_method_net_banking">Net Banking</string>
+    <string name="payment_method_card">Debit / Credit Card</string>
+    <string name="payment_btn_pay">Pay ₹%1$d</string>
+
     <!-- Consecutive booking limit -->
     <string name="dialog_consecutive_limit_title">Session Limit Reached</string>
     <string name="dialog_consecutive_limit_message">You can only book up to 2 back-to-back slots at a time. Please leave room for other members, or cancel an existing slot first.</string>
@@ -100,4 +109,10 @@
     <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
     <string name="plan_get_started">Get Started</string>
     <string name="plan_current">Current Plan</string>
+    <string name="plan_upgrade_btn">Upgrade · ₹%1$d</string>
+    <string name="membership_cancel_btn">Cancel Membership</string>
+    <string name="dialog_confirm_cancel_membership_title">Cancel Membership?</string>
+    <string name="dialog_cancel_membership_confirm">Cancel Plan</string>
+    <string name="membership_purchase_description">Monthly membership · %1$d sessions/month</string>
+    <string name="membership_upgrade_description">Upgrade · %1$d sessions/month</string>
 </resources>

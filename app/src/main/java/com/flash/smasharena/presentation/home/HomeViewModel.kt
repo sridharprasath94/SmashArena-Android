@@ -46,6 +46,17 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun refreshProfile() {
+        viewModelScope.launch {
+            runCatching { userRepository.getOrCreateProfile() }
+                .onSuccess { profile ->
+                    _uiState.update {
+                        it.copy(userProfile = profile, lastSyncedAt = formattedNow())
+                    }
+                }
+        }
+    }
+
     fun signOut() {
         authRepository.signOut()
         _uiState.update { it.copy(navigateToLogin = true) }

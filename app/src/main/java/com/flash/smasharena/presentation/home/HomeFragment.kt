@@ -31,6 +31,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         setupFacilityCards()
         setupMembershipBanner()
         setupLogoutListener()
+        observeMembershipUpdates()
         observeUiState()
     }
 
@@ -86,6 +87,19 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         binding.membershipBanner.root.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_membershipFragment)
         }
+    }
+
+    private fun observeMembershipUpdates() {
+        findNavController().currentBackStackEntry
+            ?.savedStateHandle
+            ?.getLiveData<Boolean>("membership_updated")
+            ?.observe(viewLifecycleOwner) { updated ->
+                if (updated == true) {
+                    findNavController().currentBackStackEntry
+                        ?.savedStateHandle?.remove<Boolean>("membership_updated")
+                    viewModel.refreshProfile()
+                }
+            }
     }
 
     private fun observeUiState() {

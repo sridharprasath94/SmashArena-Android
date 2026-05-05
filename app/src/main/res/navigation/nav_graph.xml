@@ -39,7 +39,20 @@
     <fragment
         android:id="@+id/membershipFragment"
         android:name="com.flash.smasharena.presentation.membership.MembershipFragment"
-        android:label="Membership" />
+        android:label="Membership">
+        <action
+            android:id="@+id/action_membershipFragment_to_membershipPaymentFragment"
+            app:destination="@id/membershipPaymentFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/membershipPaymentFragment"
+        android:name="com.flash.smasharena.presentation.payment.MembershipPaymentFragment"
+        android:label="Membership Payment">
+        <argument android:name="tierName"   app:argType="string" />
+        <argument android:name="amount"     app:argType="integer" />
+        <argument android:name="isUpgrade"  app:argType="boolean" />
+    </fragment>
 
     <fragment
         android:id="@+id/myBookingsFragment"
@@ -56,6 +69,22 @@
         <argument
             android:name="facilityName"
             app:argType="string" />
+        <action
+            android:id="@+id/action_slotsFragment_to_paymentFragment"
+            app:destination="@id/paymentFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/paymentFragment"
+        android:name="com.flash.smasharena.presentation.payment.PaymentFragment"
+        android:label="Payment">
+        <argument android:name="facilityId"   app:argType="string" />
+        <argument android:name="facilityName" app:argType="string" />
+        <argument android:name="date"         app:argType="string" />
+        <argument android:name="dateLabel"    app:argType="string" />
+        <argument android:name="hour"         app:argType="integer" />
+        <argument android:name="timeLabel"    app:argType="string" />
+        <argument android:name="amount"       app:argType="integer" />
     </fragment>
 
 </navigation>

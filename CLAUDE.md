@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # SmashArena – Claude Working Brief
 
-Android sports facility booking app. Users sign in, browse a badminton court and cricket net, check real-time slot availability on a 14-day calendar, and make hourly bookings. Members get early access based on their plan tier.
+Android sports facility booking app. Users sign in, browse a badminton court and cricket net, check real-time slot availability on a 14-day calendar, and make hourly bookings. Members get early access and free sessions based on their plan tier.
 
 **Package:** `com.flash.smasharena`
 **Min SDK:** 24 | **Target SDK:** 35
@@ -65,7 +65,7 @@ Alternatively, use **Build → Make Project** / **Run** in Android Studio (Meerk
 
 ---
 
-## Facilities
+## Facilities & Slot Pricing
 
 | Enum | ID | Display Name |
 |---|---|---|
@@ -76,22 +76,29 @@ Alternatively, use **Build → Make Project** / **Run** in Android Studio (Meerk
 - Each slot is exactly **1 hour**
 - Firestore doc ID: `{facilityId}_{date}_{hour}` e.g. `badminton_court_1_2026-05-10_8`
 
+**Slot pricing** (`Facility.priceForHour(hour: Int): Int`):
+
+| Facility | Hours 5–9 | Hours 10–15 | Hours 16–21 |
+|---|---|---|---|
+| Badminton Court | ₹300 | ₹200 | ₹300 |
+| Cricket Net | ₹400 | ₹300 | ₹400 |
+
 ---
 
-## Membership Plans (Badminton)
+## Membership Plans
 
-| Enum | Plan | Price | Sessions/month |
-|---|---|---|---|
-| `RALLY` | Rally | ₹1,000 | 8 |
-| `SMASH` | Smash | ₹1,500 | 12 |
-| `ACE` | Ace | ₹2,000 | 16 |
+| Enum | Plan | Price | Badminton sessions/month | Cricket sessions/month |
+|---|---|---|---|---|
+| `RALLY` | Rally | ₹1,000 | 8 | 2 |
+| `SMASH` | Smash | ₹1,500 | 12 | 3 |
+| `ACE` | Ace | ₹2,000 | 16 | 4 |
 
-- Monthly membership, stored in Firestore under `/users/{uid}`
+- Monthly membership (30-day expiry), stored in Firestore under `/users/{uid}`
 - All tiers get the same **7-day early booking window** (days 7–6 before the slot)
 - Non-members can book during days 5–0 only
-- **Cricket net membership is separate** — plans TBD, not yet implemented
-- Membership UI: subtle banner on Home screen → taps open `MembershipFragment` (plan comparison screen)
-- No payment gateway — membership plan screen is UI-only
+- Members get free slot bookings up to their `sessionsQuota`; payment required only when `sessionsUsed >= sessionsQuota`
+- Upgrade path: pay only the price difference to move to a higher tier
+- Cancellation: resets `membershipTier` to NONE and clears quota/expiry
 
 ---
 
@@ -106,6 +113,12 @@ daysUntil < 0   → LOCKED (past)
 
 Implemented in `BookingWindowUtils.effectiveStatus()` (pure function, easy to unit test).
 Also enforced in Firestore security rules (server-side source of truth).
+
+---
+
+## Consecutive Booking Limit
+
+Max **2 back-to-back slots** per account per day. Enforced client-side in `SlotsViewModel.wouldExceedConsecutiveLimit()` — checks if adding the selected hour would create a run of 3+ consecutive MY_BOOKING hours. Shows `ConfirmationDialog.limitReached()` (INFO type, no fragment result) when breached.
 
 ---
 
@@ -124,9 +137,9 @@ Also enforced in Firestore security rules (server-side source of truth).
   displayName       : string
   email             : string
   membershipTier    : string   — "NONE" | "RALLY" | "SMASH" | "ACE"
-  membershipExpiry  : long?    — epoch millis
-  sessionsUsed      : int
-  sessionsQuota     : int      — 0 | 8 | 12 | 16
+  membershipExpiry  : long?    — epoch millis (30 days from purchase)
+  sessionsUsed      : int      — incremented by FieldValue.increment(1) on each free booking
+  sessionsQuota     : int      — 0 | 8 | 12 | 16 (set by tier on purchase/upgrade)
 ```
 
 Slot documents are only written when a booking happens. `observeSlots` generates all 17 slots client-side and overlays Firestore data on top — so a missing document = available.
@@ -153,7 +166,7 @@ service cloud.firestore {
 
 ---
 
-## Actual Project Structure
+## Project Structure
 
 ```
 app/src/main/java/com/flash/smasharena/
@@ -165,9 +178,9 @@ app/src/main/java/com/flash/smasharena/
 │   ├── User.kt, UserDao.kt                               — legacy Room files (unused, keep)
 │   ├── SmashArenaDatabase.kt                             — Room DB (entities: User, Court, Booking)
 │   └── repository/
-│       ├── AuthRepositoryImpl.kt     — Firebase Auth (email + Google); checks connectivity before each call
-│       ├── SlotRepositoryImpl.kt     — Firestore slots (callbackFlow + transaction); checks connectivity before writes
-│       └── UserRepositoryImpl.kt     — Firestore user profile (get-or-create)
+│       ├── AuthRepositoryImpl.kt       — Firebase Auth (email + Google); checks connectivity before each call
+│       ├── SlotRepositoryImpl.kt       — Firestore slots (callbackFlow + transaction); checks connectivity before writes
+│       └── UserRepositoryImpl.kt       — Firestore user profile; get-or-create, purchase/upgrade/cancel membership, incrementSessionsUsed
 ├── di/
 │   ├── DatabaseModule.kt             — Provides Room DB + DAOs
 │   ├── FirebaseModule.kt             — Provides FirebaseAuth, FirebaseFirestore, GoogleSignInClient
@@ -175,37 +188,43 @@ app/src/main/java/com/flash/smasharena/
 ├── domain/
 │   ├── model/
 │   │   ├── AppError.kt               — Sealed class: NoInternet, NotSignedIn, SlotAlreadyBooked, auth errors, etc.
-│   │   ├── Facility.kt               — Enum: BADMINTON_COURT, CRICKET_NET (id, nameRes, imageRes)
-│   │   ├── MembershipTier.kt         — Enum: NONE, RALLY, SMASH, ACE (price, quota)
+│   │   ├── Facility.kt               — Enum: BADMINTON_COURT, CRICKET_NET (id, nameRes, imageRes, priceForHour())
+│   │   ├── MembershipTier.kt         — Enum: NONE, RALLY, SMASH, ACE (price, quota, cricketQuota)
 │   │   ├── Slot.kt                   — Data class (docId and timeLabel as computed properties)
 │   │   ├── SlotStatus.kt             — Enum: AVAILABLE, MEMBER_HOLD, BOOKED, LOCKED, MY_BOOKING
 │   │   └── UserProfile.kt            — Data class (isMember, sessionsRemaining as computed)
 │   └── repository/
 │       ├── AuthRepository.kt
 │       ├── SlotRepository.kt         — observeSlots(), getMyBookings(), bookSlot(), cancelBooking()
-│       └── UserRepository.kt
+│       └── UserRepository.kt         — getOrCreateProfile(), purchaseMembership(), upgradeMembership(), cancelMembership(), incrementSessionsUsed()
 ├── presentation/
 │   ├── login/
 │   │   ├── LoginFragment.kt
 │   │   ├── LoginViewModel.kt
 │   │   └── LoginUiState.kt           — generalError: AppError?
 │   ├── home/
-│   │   ├── HomeFragment.kt
-│   │   ├── HomeViewModel.kt
+│   │   ├── HomeFragment.kt           — observes membership_updated from savedStateHandle → refreshProfile()
+│   │   ├── HomeViewModel.kt          — loadProfile() on init, refreshProfile() public method
 │   │   └── HomeUiState.kt
 │   ├── slots/
 │   │   ├── SlotsFragment.kt
-│   │   ├── SlotsViewModel.kt         — SavedStateHandle for facilityId/facilityName
-│   │   ├── SlotsUiState.kt           — DateItem, DisplaySlot, BookingResultInfo, ResultType, SlotsUiState
+│   │   ├── SlotsViewModel.kt         — facilityId is public (val); wouldExceedConsecutiveLimit(), isFreeSession(), bookSelectedSlotFree()
+│   │   ├── SlotsUiState.kt           — DateItem, DisplaySlot, BookingResultInfo, ResultType, SlotsUiState (isCancelling, isBookingFree)
 │   │   ├── DateAdapter.kt            — Horizontal date strip (ListAdapter)
 │   │   ├── SlotAdapter.kt            — 3-column slot grid (ListAdapter)
 │   │   ├── BookingResultDialog.kt    — Animated result dialog (booking confirmed / cancelled)
-│   │   └── ConfirmationDialog.kt     — Animated confirmation dialog (book / cancel / logout)
+│   │   └── ConfirmationDialog.kt     — Animated confirmation dialog; types: BOOK, CANCEL, LOGOUT, INFO, CANCEL_MEMBERSHIP
+│   ├── payment/
+│   │   ├── PaymentFragment.kt        — Slot payment; pops back to SlotsFragment via savedStateHandle["booking_result"]
+│   │   ├── PaymentViewModel.kt       — Reads facilityId/date/hour from SavedStateHandle; calls slotRepository.bookSlot()
+│   │   ├── PaymentUiState.kt         — PaymentMethod enum + PaymentUiState
+│   │   ├── MembershipPaymentFragment.kt  — Membership payment; pops to homeFragment with savedStateHandle["membership_updated"]
+│   │   └── MembershipPaymentViewModel.kt — Reads tierName/isUpgrade from SavedStateHandle; calls userRepository.purchase/upgradeMembership()
 │   ├── membership/
-│   │   ├── MembershipFragment.kt     — Plan comparison screen (UI-only, no payment)
-│   │   ├── MembershipViewModel.kt
-│   │   ├── MembershipUiState.kt
-│   │   └── PlanAdapter.kt            — RecyclerView adapter for plan cards
+│   │   ├── MembershipFragment.kt     — Plan comparison + payment navigation + cancel membership
+│   │   ├── MembershipViewModel.kt    — onCardTapped(), onGetStarted(item), cancelMembership(); emits navigateToPayment event
+│   │   ├── MembershipUiState.kt      — PlanItem (upgradePrice?), NavigateToMembershipPayment, MembershipUiState
+│   │   └── PlanAdapter.kt            — Shows "Get Started", "Upgrade · ₹X", or "Current Plan" button
 │   └── mybookings/
 │       ├── MyBookingsFragment.kt
 │       ├── MyBookingsViewModel.kt
@@ -227,9 +246,11 @@ app/src/main/java/com/flash/smasharena/
 ```
 loginFragment (start)
   └─► homeFragment  (popUpTo loginFragment inclusive)
-        ├─► slotsFragment  (args: facilityId: String, facilityName: String)
+        ├─► slotsFragment  (args: facilityId, facilityName)
+        │     └─► paymentFragment  (args: facilityId, facilityName, date, dateLabel, hour, timeLabel, amount)
         ├─► myBookingsFragment
         ├─► membershipFragment
+        │     └─► membershipPaymentFragment  (args: tierName, amount, isUpgrade)
         └─► loginFragment  (logout — popUpTo homeFragment inclusive)
 ```
 
@@ -241,39 +262,56 @@ loginFragment (start)
 - Email + password fields (TextInputLayout outlined)
 - Sign in / Create account / Sign in with Google buttons
 - `ActivityResultLauncher` for Google Sign-In intent
-- Validation errors shown on TextInputLayout fields; Firebase auth errors shown as Snackbar
-- `generalError: AppError?` in UiState — mapped to strings via `AppError.toUserMessage()`
+- Validation errors on TextInputLayout fields; Firebase auth errors as Snackbar
+- `generalError: AppError?` in UiState — mapped via `AppError.toUserMessage()`
 
 ### Home (`HomeFragment`)
 - Two facility cards (Badminton Court, Cricket Net) — tap → SlotsFragment
-- Membership banner at bottom — shows tier + sessions remaining (or "No membership · View plans →")
-- Toolbar menu: **Cloud Synced** (disabled, shows last sync time) | **My Bookings** | **Log out**
-- `setSupportActionBar(binding.toolbar)` called here (not in MainActivity)
-- Log out uses `ConfirmationDialog` (type LOGOUT) — result via `setFragmentResult(REQUEST_LOGOUT)`
+- Membership banner: shows tier + sessions remaining or "No membership · View plans →"
+- Toolbar menu: **Cloud Synced** (shows last sync time) | **My Bookings** | **Log out**
+- Observes `currentBackStackEntry.savedStateHandle["membership_updated"]` — calls `viewModel.refreshProfile()` when returning from Membership payment or cancellation
+- Log out uses `ConfirmationDialog` (LOGOUT type)
 
 ### Slots (`SlotsFragment`)
 - 14-day horizontal date strip; non-browsable dates are dimmed
 - 3-column slot grid colored by status (green=available, grey=booked, amber=member-hold, dark=locked, blue=mine)
-- Tapping an available slot selects it → floating "Book HH:00 – HH:00" button appears (green)
-- Tapping a MY_BOOKING slot selects it → floating "Cancel HH:00 – HH:00" button appears (rose)
-- Book/cancel both show a `ConfirmationDialog` before acting
-- After success, a `BookingResultDialog` is shown (animated icon + facility + date/time + Done button)
-- Firestore listener restarted when date changes (`slotObserverJob?.cancel()`)
-- Real-time updates (another user booking reflects immediately)
-- Errors shown as Snackbar using `AppError.toUserMessage()`
+- Tapping an available slot → "Book HH:00" button (green); tapping MY_BOOKING → "Cancel HH:00" button (rose)
+- Book button logic (in order):
+  1. MY_BOOKING → show cancel confirmation
+  2. Would exceed 2 consecutive → show `ConfirmationDialog.limitReached()` (INFO type)
+  3. Member with free sessions remaining → show `ConfirmationDialog.bookFree()` → `bookSelectedSlotFree()`
+  4. Otherwise → navigate to `PaymentFragment`
+- `PaymentFragment` returns result via `savedStateHandle["booking_result"]` bundle → `BookingResultDialog` shown
+- `bookSelectedSlotFree()`: calls `bookSlot()` + `incrementSessionsUsed()` (best-effort) + refreshes userProfile
+- Real-time Firestore updates; `slotObserverJob` restarted on date change
+
+### Payment (`PaymentFragment`)
+- Reuses `fragment_payment.xml` layout
+- Order summary card: facility name, date · time, total amount (green)
+- Payment method radio group: UPI / Net Banking / Debit · Credit Card
+- 1.5s simulated delay then `slotRepository.bookSlot()`
+- On success: writes `booking_result` bundle to `previousBackStackEntry.savedStateHandle` → `popBackStack()`
 
 ### My Bookings (`MyBookingsFragment`)
 - Lists all upcoming bookings for the current user (today and later)
 - Real-time Firestore listener (`callbackFlow` with `whereEqualTo("bookedBy", uid)`)
-- Client-side filtered and sorted (date asc, hour asc) — no composite Firestore index needed
-- Empty state text when no upcoming bookings
-- Cancel confirmation uses `ConfirmationDialog` — docId travels through the result Bundle
-- `SlotRepository.cancelBooking(docId)` verifies ownership in a Firestore transaction, then deletes
+- Client-side filtered and sorted; no composite Firestore index needed
+- Cancel confirmation uses `ConfirmationDialog`; docId travels in result Bundle
 
 ### Membership (`MembershipFragment`)
-- Plan comparison screen with `PlanAdapter` (RecyclerView, LinearLayoutManager)
-- UI-only — no payment flow
-- Navigated to from the membership banner on Home
+- Plan comparison with `PlanAdapter` (RALLY / SMASH / ACE cards)
+- Tapping a higher-tier card selects it; tapping current plan or a lower tier does nothing
+- Selected card shows "Get Started" (new purchase) or "Upgrade · ₹X" (upgrade — difference only)
+- "Current Plan" button on the active plan card (disabled)
+- "Cancel Membership" rose text button at bottom — visible only when user has an active plan
+- Cancel uses `ConfirmationDialog.cancelMembership()` (CANCEL_MEMBERSHIP type)
+- Navigates to `MembershipPaymentFragment` on Get Started / Upgrade
+
+### Membership Payment (`MembershipPaymentFragment`)
+- Reuses `fragment_payment.xml`; toolbar title = "{Tier} Plan"
+- Order summary: plan name, "Monthly membership · N sessions/month" or "Upgrade · N sessions/month"
+- 1.5s simulated delay then `userRepository.purchaseMembership()` or `upgradeMembership()`
+- On success: writes `membership_updated = true` to `homeFragment`'s savedStateHandle → `popBackStack(R.id.homeFragment, false)`
 
 ---
 
@@ -284,7 +322,7 @@ loginFragment (start)
 suspendCancellableCoroutine { cont ->
     task
         .addOnSuccessListener { cont.resume(Unit) }
-        .addOnFailureListener { cont.resumeWithException(it.toAppError()) }
+        .addOnFailureListener { cont.resumeWithException(it) }
 }
 ```
 No `kotlinx-coroutines-play-services` dependency needed.
@@ -293,15 +331,32 @@ No `kotlinx-coroutines-play-services` dependency needed.
 ```kotlin
 if (!networkMonitor.isConnected()) throw AppError.NoInternet
 ```
-Called at the start of every write operation (`bookSlot`, `cancelBooking`, all auth calls).
+Called at the start of every write operation (`bookSlot`, `cancelBooking`, all auth calls, all membership writes).
 
 ### Error flow
 ```
 Repository            → throws AppError (via toAppError() or directly)
-ViewModel.onFailure   → _uiState.update { it.copy(error = e.toAppError()) }
+ViewModel             → runCatching { }.onFailure { e -> _uiState.update { it.copy(error = e.toAppError()) } }
 Fragment              → error.toUserMessage(requireContext()) → Snackbar
 ```
-`AppError` is a sealed class in `domain/model/`. `ErrorMapper.toAppError()` matches Firebase exception classes first, then falls back to message-string matching.
+`AppError` is a sealed class in `domain/model/`. `ErrorMapper.toAppError()` matches Firebase exception classes first; `is AppError -> this` pass-through handles directly-thrown AppErrors.
+
+### Cross-fragment result via savedStateHandle
+Used for passing results back across the nav back stack:
+```kotlin
+// Writer (child fragment) — write before popping
+findNavController().previousBackStackEntry?.savedStateHandle?.set("key", value)
+findNavController().popBackStack()
+
+// Writer (grandchild, popping multiple levels)
+findNavController().getBackStackEntry(R.id.homeFragment).savedStateHandle["key"] = value
+findNavController().popBackStack(R.id.homeFragment, false)
+
+// Reader (parent fragment) — in onViewCreated
+findNavController().currentBackStackEntry?.savedStateHandle
+    ?.getLiveData<T>("key")
+    ?.observe(viewLifecycleOwner) { value -> /* handle */ }
+```
 
 ### Slot observation (callbackFlow)
 ```kotlin
@@ -323,27 +378,25 @@ firestore.runTransaction { tx ->
 
 ### ConfirmationDialog (all confirmation flows)
 All confirmation dialogs use `ConfirmationDialog` — never `MaterialAlertDialogBuilder`.
-```kotlin
-// Show
-ConfirmationDialog.book(facilityName, dateLabel, timeLabel)
-    .show(childFragmentManager, "confirm_book")
 
-// Listen (in onViewCreated)
-childFragmentManager.setFragmentResultListener(ConfirmationDialog.REQUEST_BOOK, viewLifecycleOwner) { _, _ ->
-    viewModel.bookSelectedSlot()
-}
-```
-Factory methods: `book()`, `cancelSlot()`, `cancelBooking(docId)`, `logout(message)`.  
-Request keys: `REQUEST_BOOK`, `REQUEST_CANCEL_SLOT`, `REQUEST_CANCEL_BOOKING`, `REQUEST_LOGOUT`.  
+Types: `BOOK`, `CANCEL`, `LOGOUT`, `INFO` (single-button, no result), `CANCEL_MEMBERSHIP`
+
+Factory methods and their request keys:
+| Factory | Request key | Type |
+|---|---|---|
+| `book(facility, date, time)` | `REQUEST_BOOK` | BOOK |
+| `bookFree(facility, date, time)` | `REQUEST_BOOK_FREE` | BOOK |
+| `cancelSlot(facility, date, time)` | `REQUEST_CANCEL_SLOT` | CANCEL |
+| `cancelBooking(facility, date, time, docId)` | `REQUEST_CANCEL_BOOKING` | CANCEL |
+| `logout(message)` | `REQUEST_LOGOUT` | LOGOUT |
+| `limitReached(message)` | — (no result) | INFO |
+| `cancelMembership(tierName)` | `REQUEST_CANCEL_MEMBERSHIP` | CANCEL_MEMBERSHIP |
+
 The docId for My Bookings cancellation travels inside the result `Bundle` via `KEY_DOC_ID`.
 
 ### BookingResultDialog (success feedback)
-Shown after a successful booking or cancellation — never use Snackbar for success.
+Shown after successful booking or cancellation — never Snackbar for success.
 ```kotlin
-// ViewModel emits BookingResultInfo in SlotsUiState
-bookingResultInfo = BookingResultInfo(type = ResultType.BOOKED, facilityName, dateLabel, timeLabel)
-
-// Fragment shows dialog
 state.bookingResultInfo?.let { info ->
     viewModel.onResultShown()
     BookingResultDialog.newInstance(info).show(childFragmentManager, "booking_result")
@@ -363,7 +416,6 @@ class FooFragment : Fragment(R.layout.fragment_foo) {
     // No _binding, no onDestroyView null-out
 }
 ```
-Also works for `DialogFragment(R.layout.xxx)`.
 
 ### UI state collection
 ```kotlin
@@ -373,6 +425,9 @@ viewLifecycleOwner.lifecycleScope.launch {
     }
 }
 ```
+
+### Dummy payment pattern
+Both `PaymentViewModel` and `MembershipPaymentViewModel` use a 1.5s `delay()` to simulate a real payment gateway, then call the relevant repository method. Replace the `delay()` + repository call block when a real gateway is integrated.
 
 ---
 
@@ -408,13 +463,14 @@ viewLifecycleOwner.lifecycleScope.launch {
 - Do NOT use `kotlinx-coroutines-play-services` — bridge Firebase Tasks manually with `suspendCancellableCoroutine`
 - Do NOT add `setupActionBarWithNavController` in `MainActivity` — each fragment calls `setSupportActionBar` itself
 - Do NOT use `fallbackToDestructiveMigration` in Room — additive migrations only
-- Do NOT implement a payment gateway — membership screens are UI-only for now
+- Do NOT implement a real payment gateway — all payment flows use a 1.5s dummy delay
 - Do NOT use `java.time` APIs — use `java.util.Calendar` / `SimpleDateFormat` for API 24 compatibility
 - Do NOT commit `google-services.json` — it is gitignored
 - Do NOT use `MaterialAlertDialogBuilder` for confirmation dialogs — use `ConfirmationDialog` instead
-- Do NOT show Snackbar for booking/cancellation success — use `BookingResultDialog` instead
+- Do NOT show Snackbar for booking/cancellation/membership success — use `BookingResultDialog` or navigate back
 - Do NOT put raw exception messages in UiState — map through `Throwable.toAppError()` first
 - Do NOT put user-facing strings in ViewModels — map `AppError` to strings in the Fragment via `toUserMessage(context)`
+- Do NOT allow card selection for lower-tier plans when user has an active membership — downgrade is blocked in `MembershipViewModel.onCardTapped()`
 
 ---
 
@@ -423,9 +479,10 @@ viewLifecycleOwner.lifecycleScope.launch {
 | # | Feature | Notes |
 |---|---|---|
 | 1 | Cricket net membership plans | Separate from badminton. Plans/pricing TBD. |
-| 2 | Session quota enforcement on booking | Check `sessionsUsed < sessionsQuota` before writing to Firestore. |
-| 3 | Replace placeholder facility images | `img_badminton_court.xml` and `img_cricket_net.xml` are vector placeholders. |
-| 4 | My Bookings screen — past bookings tab | Currently only shows upcoming (date >= today). |
+| 2 | Replace placeholder facility images | `img_badminton_court.xml` and `img_cricket_net.xml` are vector placeholders. |
+| 3 | My Bookings — past bookings tab | Currently only shows upcoming (date >= today). |
+| 4 | Real payment gateway | Replace `delay(1500L)` in `PaymentViewModel` and `MembershipPaymentViewModel` with UPI/gateway SDK calls. |
+| 5 | Membership expiry enforcement | `membershipExpiry` is stored but not checked client-side or in Firestore rules. |
 
 ---
 
