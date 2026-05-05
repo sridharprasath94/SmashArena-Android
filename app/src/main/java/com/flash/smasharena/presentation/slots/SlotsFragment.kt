@@ -70,9 +70,19 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
             when {
                 slot.effectiveStatus == SlotStatus.MY_BOOKING -> showCancelConfirmation()
                 viewModel.wouldExceedConsecutiveLimit() -> showConsecutiveLimitDialog()
+                viewModel.isFreeSession() -> showFreeBookingConfirmation()
                 else -> navigateToPayment()
             }
         }
+    }
+
+    private fun showFreeBookingConfirmation() {
+        val state = viewModel.uiState.value
+        val slot = state.selectedSlot ?: return
+        val dateItem = state.dates.find { it.isSelected }
+        val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
+        ConfirmationDialog.bookFree(state.facilityName, dateLabel, slot.timeLabel)
+            .show(childFragmentManager, "confirm_book_free")
     }
 
     private fun showConsecutiveLimitDialog() {
@@ -84,6 +94,9 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
         childFragmentManager.setFragmentResultListener(
             ConfirmationDialog.REQUEST_CANCEL_SLOT, viewLifecycleOwner
         ) { _, _ -> viewModel.cancelSelectedSlot() }
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_BOOK_FREE, viewLifecycleOwner
+        ) { _, _ -> viewModel.bookSelectedSlotFree() }
     }
 
     private fun showCancelConfirmation() {
@@ -138,7 +151,7 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
                     dateAdapter.submitList(state.dates)
                     slotAdapter.submitList(state.slots)
 
-                    val busy = state.isCancelling
+                    val busy = state.isCancelling || state.isBookingFree
                     val isCancelSelected = state.selectedSlot?.effectiveStatus == SlotStatus.MY_BOOKING
                     binding.btnBook.isVisible = state.selectedSlot != null && !busy
                     binding.btnBook.text = state.selectedSlot?.let {

@@ -34,7 +34,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         val requestKey = args.getString(ARG_REQUEST_KEY, "")
         val docId = args.getString(ARG_DOC_ID, "")
 
-        val isDestructive = type == Type.CANCEL || type == Type.LOGOUT || type == Type.INFO
+        val isDestructive = type == Type.CANCEL || type == Type.LOGOUT || type == Type.INFO || type == Type.CANCEL_MEMBERSHIP
 
         val accentColor = ContextCompat.getColor(
             requireContext(),
@@ -56,6 +56,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.CANCEL -> R.drawable.ic_close
                 Type.LOGOUT -> R.drawable.ic_logout
                 Type.INFO -> R.drawable.ic_close
+                Type.CANCEL_MEMBERSHIP -> R.drawable.ic_close
             }
         )
         binding.ivIcon.imageTintList = ColorStateList.valueOf(accentColor)
@@ -66,6 +67,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.CANCEL -> R.string.dialog_confirm_cancel_title
                 Type.LOGOUT -> R.string.dialog_confirm_logout_title
                 Type.INFO -> R.string.dialog_consecutive_limit_title
+                Type.CANCEL_MEMBERSHIP -> R.string.dialog_confirm_cancel_membership_title
             }
         )
         binding.tvSubtitle.text = subtitle
@@ -78,6 +80,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.CANCEL -> R.string.dialog_cancel_booking_confirm
                 Type.LOGOUT -> R.string.dialog_logout_confirm
                 Type.INFO -> R.string.dialog_got_it
+                Type.CANCEL_MEMBERSHIP -> R.string.dialog_cancel_membership_confirm
             }
         )
         binding.btnConfirm.backgroundTintList = ColorStateList.valueOf(accentColor)
@@ -96,7 +99,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         binding.btnDismiss.text = getString(
             when (type) {
                 Type.BOOK, Type.LOGOUT, Type.INFO -> R.string.dialog_cancel
-                Type.CANCEL -> R.string.dialog_keep
+                Type.CANCEL, Type.CANCEL_MEMBERSHIP -> R.string.dialog_keep
             }
         )
         binding.btnDismiss.setOnClickListener { dismissAllowingStateLoss() }
@@ -125,13 +128,15 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         }, 80)
     }
 
-    enum class Type { BOOK, CANCEL, LOGOUT, INFO }
+    enum class Type { BOOK, CANCEL, LOGOUT, INFO, CANCEL_MEMBERSHIP }
 
     companion object {
         const val REQUEST_BOOK = "confirm_book"
+        const val REQUEST_BOOK_FREE = "confirm_book_free"
         const val REQUEST_CANCEL_SLOT = "confirm_cancel_slot"
         const val REQUEST_CANCEL_BOOKING = "confirm_cancel_booking"
         const val REQUEST_LOGOUT = "confirm_logout"
+        const val REQUEST_CANCEL_MEMBERSHIP = "confirm_cancel_membership"
         const val KEY_DOC_ID = "docId"
 
         private const val ARG_TYPE = "type"
@@ -151,6 +156,12 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
 
         fun logout(message: String) =
             build(Type.LOGOUT, REQUEST_LOGOUT, message, null)
+
+        fun bookFree(facilityName: String, dateLabel: String, timeLabel: String) =
+            build(Type.BOOK, REQUEST_BOOK_FREE, facilityName, "$dateLabel · $timeLabel")
+
+        fun cancelMembership(tierDisplayName: String) =
+            build(Type.CANCEL_MEMBERSHIP, REQUEST_CANCEL_MEMBERSHIP, tierDisplayName, null)
 
         fun limitReached(message: String) =
             build(Type.INFO, "", message, null)

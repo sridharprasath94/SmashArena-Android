@@ -12,6 +12,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentMembershipBinding
+import com.flash.smasharena.presentation.slots.ConfirmationDialog
+import com.flash.smasharena.util.toUserMessage
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import dev.androidbroadcast.vbpd.viewBinding
@@ -30,6 +32,8 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
 
         setupToolbar()
         setupRecyclerView()
+        setupCancelButton()
+        setupCancelMembershipListener()
         observeUiState()
     }
 
@@ -40,12 +44,26 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
     private fun setupRecyclerView() {
         adapter = PlanAdapter(
             onCardTapped = { plan -> viewModel.onCardTapped(plan.tier) },
-            onGetStarted = { viewModel.onGetStarted() },
+            onGetStarted = { plan -> viewModel.onGetStarted(plan) },
         )
         binding.rvPlans.apply {
             this.adapter = this@MembershipFragment.adapter
             layoutManager = LinearLayoutManager(requireContext())
         }
+    }
+
+    private fun setupCancelButton() {
+        binding.btnCancelMembership.setOnClickListener {
+            val tierName = viewModel.uiState.value.currentTier.displayName
+            ConfirmationDialog.cancelMembership(tierName)
+                .show(childFragmentManager, "confirm_cancel_membership")
+        }
+    }
+
+    private fun setupCancelMembershipListener() {
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_CANCEL_MEMBERSHIP, viewLifecycleOwner
+        ) { _, _ -> viewModel.cancelMembership() }
     }
 
     private fun observeUiState() {
@@ -54,12 +72,31 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
                 viewModel.uiState.collect { state ->
                     binding.progressBar.isVisible = state.isLoading
                     binding.rvPlans.isVisible = !state.isLoading
+                    binding.btnCancelMembership.isVisible = state.showCancelButton && !state.isLoading
 
                     adapter.submitList(state.plans)
 
-                    state.snackbarMessage?.let {
-                        viewModel.onSnackbarShown()
-                        Snackbar.make(requireView(), it, Snackbar.LENGTH_LONG).show()
+                    state.navigateToPayment?.let { nav ->
+                        viewModel.onNavigatedToPayment()
+                        val action = MembershipFragmentDirections
+                            .actionMembershipFragmentToMembershipPaymentFragment(
+                                tierName = nav.tier.name,
+                                amount = nav.amount,
+                                isUpgrade = nav.isUpgrade,
+                            )
+                        findNavController().navigate(action)
+                    }
+
+                    if (state.cancelSuccess) {
+                        viewModel.onCancelSuccessHandled()
+                        findNavController().getBackStackEntry(R.id.homeFragment)
+                            .savedStateHandle["membership_updated"] = true
+                        findNavController().popBackStack()
+                    }
+
+                    state.error?.let { error ->
+                        viewModel.onErrorShown()
+                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
                     }
                 }
             }

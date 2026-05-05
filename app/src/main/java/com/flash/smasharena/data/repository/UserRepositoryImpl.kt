@@ -1,10 +1,13 @@
 package com.flash.smasharena.data.repository
 
+import com.flash.smasharena.domain.model.AppError
 import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.domain.model.UserProfile
 import com.flash.smasharena.domain.repository.UserRepository
+import com.flash.smasharena.util.NetworkMonitor
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
@@ -14,6 +17,7 @@ import kotlin.coroutines.resumeWithException
 class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val firebaseAuth: FirebaseAuth,
+    private val networkMonitor: NetworkMonitor,
 ) : UserRepository {
 
     override suspend fun getOrCreateProfile(): UserProfile {
@@ -51,6 +55,72 @@ class UserRepositoryImpl @Inject constructor(
                             .addOnFailureListener { cont.resumeWithException(it) }
                     }
                 }
+                .addOnFailureListener { cont.resumeWithException(it) }
+        }
+    }
+
+    override suspend fun purchaseMembership(tier: MembershipTier) {
+        if (!networkMonitor.isConnected()) throw AppError.NoInternet
+        val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
+        val docRef = firestore.collection("users").document(uid)
+        val expiry = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
+        suspendCancellableCoroutine { cont ->
+            docRef.update(
+                mapOf(
+                    "membershipTier" to tier.name,
+                    "sessionsQuota" to tier.sessionsPerMonth,
+                    "sessionsUsed" to 0,
+                    "membershipExpiry" to expiry,
+                )
+            )
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resumeWithException(it) }
+        }
+    }
+
+    override suspend fun upgradeMembership(newTier: MembershipTier) {
+        if (!networkMonitor.isConnected()) throw AppError.NoInternet
+        val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
+        val docRef = firestore.collection("users").document(uid)
+        val expiry = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
+        suspendCancellableCoroutine { cont ->
+            docRef.update(
+                mapOf(
+                    "membershipTier" to newTier.name,
+                    "sessionsQuota" to newTier.sessionsPerMonth,
+                    "membershipExpiry" to expiry,
+                )
+            )
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resumeWithException(it) }
+        }
+    }
+
+    override suspend fun cancelMembership() {
+        if (!networkMonitor.isConnected()) throw AppError.NoInternet
+        val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
+        val docRef = firestore.collection("users").document(uid)
+        suspendCancellableCoroutine { cont ->
+            docRef.update(
+                mapOf(
+                    "membershipTier" to MembershipTier.NONE.name,
+                    "sessionsQuota" to 0,
+                    "sessionsUsed" to 0,
+                    "membershipExpiry" to null,
+                )
+            )
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resumeWithException(it) }
+        }
+    }
+
+    override suspend fun incrementSessionsUsed() {
+        if (!networkMonitor.isConnected()) throw AppError.NoInternet
+        val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
+        val docRef = firestore.collection("users").document(uid)
+        suspendCancellableCoroutine { cont ->
+            docRef.update("sessionsUsed", FieldValue.increment(1))
+                .addOnSuccessListener { cont.resume(Unit) }
                 .addOnFailureListener { cont.resumeWithException(it) }
         }
     }

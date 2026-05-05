@@ -51,6 +51,12 @@ class PlanAdapter(
                     binding.btnSelect.isEnabled = false
                     binding.btnSelect.alpha = 0.45f
                 }
+                item.isSelected && item.upgradePrice != null -> {
+                    binding.btnSelect.text = ctx.getString(R.string.plan_upgrade_btn, item.upgradePrice)
+                    binding.btnSelect.isEnabled = true
+                    binding.btnSelect.alpha = 1f
+                    binding.btnSelect.setOnClickListener { onGetStarted(item) }
+                }
                 item.isSelected -> {
                     binding.btnSelect.text = ctx.getString(R.string.plan_get_started)
                     binding.btnSelect.isEnabled = true

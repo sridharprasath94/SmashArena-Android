@@ -39,7 +39,20 @@
     <fragment
         android:id="@+id/membershipFragment"
         android:name="com.flash.smasharena.presentation.membership.MembershipFragment"
-        android:label="Membership" />
+        android:label="Membership">
+        <action
+            android:id="@+id/action_membershipFragment_to_membershipPaymentFragment"
+            app:destination="@id/membershipPaymentFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/membershipPaymentFragment"
+        android:name="com.flash.smasharena.presentation.payment.MembershipPaymentFragment"
+        android:label="Membership Payment">
+        <argument android:name="tierName"   app:argType="string" />
+        <argument android:name="amount"     app:argType="integer" />
+        <argument android:name="isUpgrade"  app:argType="boolean" />
+    </fragment>
 
     <fragment
         android:id="@+id/myBookingsFragment"

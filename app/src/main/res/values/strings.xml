@@ -109,4 +109,10 @@
     <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
     <string name="plan_get_started">Get Started</string>
     <string name="plan_current">Current Plan</string>
+    <string name="plan_upgrade_btn">Upgrade · ₹%1$d</string>
+    <string name="membership_cancel_btn">Cancel Membership</string>
+    <string name="dialog_confirm_cancel_membership_title">Cancel Membership?</string>
+    <string name="dialog_cancel_membership_confirm">Cancel Plan</string>
+    <string name="membership_purchase_description">Monthly membership · %1$d sessions/month</string>
+    <string name="membership_upgrade_description">Upgrade · %1$d sessions/month</string>
 </resources>

@@ -159,6 +159,39 @@ class SlotsViewModel @Inject constructor(
         return false
     }
 
+    fun isFreeSession(): Boolean {
+        val profile = userProfile ?: return false
+        return profile.isMember && profile.sessionsRemaining > 0
+    }
+
+    fun bookSelectedSlotFree() {
+        val slot = _uiState.value.selectedSlot ?: return
+        val dateItem = _uiState.value.dates.find { it.isSelected } ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBookingFree = true, error = null) }
+            slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour)
+                .onSuccess {
+                    runCatching { userRepository.incrementSessionsUsed() }
+                    userProfile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
+                    _uiState.update {
+                        it.copy(
+                            isBookingFree = false,
+                            selectedSlot = null,
+                            bookingResultInfo = BookingResultInfo(
+                                type = ResultType.BOOKED,
+                                facilityName = facilityName,
+                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+                                timeLabel = slot.timeLabel,
+                            )
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(isBookingFree = false, error = e.toAppError()) }
+                }
+        }
+    }
+
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
     fun onResultShown() = _uiState.update { it.copy(bookingResultInfo = null) }
 }
