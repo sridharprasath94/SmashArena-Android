@@ -1,5 +1,7 @@
 package com.flash.smasharena.presentation.mybookings
 
+import com.flash.smasharena.domain.model.AppError
+
 data class BookingItem(
     val docId: String,
     val facilityId: String,
@@ -13,5 +15,5 @@ data class MyBookingsUiState(
     val bookings: List<BookingItem> = emptyList(),
     val isLoading: Boolean = true,
     val cancellingDocId: String? = null,
-    val error: String? = null,
+    val error: AppError? = null,
 )

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.smasharena.domain.repository.SlotRepository
 import com.flash.smasharena.util.DateTimeUtils
+import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +44,7 @@ class MyBookingsViewModel @Inject constructor(
             _uiState.update { it.copy(cancellingDocId = docId) }
             slotRepository.cancelBooking(docId)
                 .onSuccess { _uiState.update { it.copy(cancellingDocId = null) } }
-                .onFailure { e -> _uiState.update { it.copy(cancellingDocId = null, error = e.message) } }
+                .onFailure { e -> _uiState.update { it.copy(cancellingDocId = null, error = e.toAppError()) } }
         }
     }
 

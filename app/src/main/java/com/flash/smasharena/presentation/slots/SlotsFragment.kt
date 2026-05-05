@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentSlotsBinding
 import com.flash.smasharena.domain.model.SlotStatus
+import com.flash.smasharena.util.toUserMessage
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -147,9 +148,9 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
                             .show(childFragmentManager, "booking_result")
                     }
 
-                    state.error?.let {
+                    state.error?.let { error ->
                         viewModel.onErrorShown()
-                        Snackbar.make(requireView(), it, Snackbar.LENGTH_LONG).show()
+                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
                     }
                 }
             }

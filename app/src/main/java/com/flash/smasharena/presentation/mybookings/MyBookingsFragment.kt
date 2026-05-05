@@ -12,6 +12,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentMyBookingsBinding
+import com.flash.smasharena.util.toUserMessage
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -75,9 +76,9 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
                     adapter.cancellingDocId = state.cancellingDocId
                     adapter.submitList(state.bookings)
 
-                    state.error?.let {
+                    state.error?.let { error ->
                         viewModel.onErrorShown()
-                        Snackbar.make(requireView(), it, Snackbar.LENGTH_LONG).show()
+                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
                     }
                 }
             }

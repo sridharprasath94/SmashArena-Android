@@ -1,5 +1,6 @@
 package com.flash.smasharena.presentation.slots
 
+import com.flash.smasharena.domain.model.AppError
 import com.flash.smasharena.domain.model.SlotStatus
 
 data class DateItem(
@@ -34,5 +35,5 @@ data class SlotsUiState(
     val isBooking: Boolean = false,
     val isCancelling: Boolean = false,
     val bookingResultInfo: BookingResultInfo? = null,
-    val error: String? = null,
+    val error: AppError? = null,
 )

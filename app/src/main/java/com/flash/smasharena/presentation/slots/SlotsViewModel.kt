@@ -9,6 +9,7 @@ import com.flash.smasharena.domain.repository.UserRepository
 import com.flash.smasharena.domain.model.UserProfile
 import com.flash.smasharena.util.BookingWindowUtils
 import com.flash.smasharena.util.DateTimeUtils
+import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,7 +132,7 @@ class SlotsViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    _uiState.update { it.copy(isBooking = false, error = e.message) }
+                    _uiState.update { it.copy(isBooking = false, error = e.toAppError()) }
                 }
         }
     }
@@ -158,7 +159,7 @@ class SlotsViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    _uiState.update { it.copy(isCancelling = false, error = e.message) }
+                    _uiState.update { it.copy(isCancelling = false, error = e.toAppError()) }
                 }
         }
     }

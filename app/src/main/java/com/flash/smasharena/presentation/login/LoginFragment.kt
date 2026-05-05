@@ -13,6 +13,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentLoginBinding
+import com.flash.smasharena.util.toUserMessage
 import dev.androidbroadcast.vbpd.viewBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -91,7 +92,10 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
                     binding.tilEmail.error = state.emailError
                     binding.tilPassword.error = state.passwordError
 
-                    state.generalError?.let { showSnackbar(it) }
+                    state.generalError?.let { error ->
+                        viewModel.onGeneralErrorShown()
+                        showSnackbar(error.toUserMessage(requireContext()))
+                    }
 
                     if (state.navigateToHome) {
                         viewModel.onNavigatedToHome()
