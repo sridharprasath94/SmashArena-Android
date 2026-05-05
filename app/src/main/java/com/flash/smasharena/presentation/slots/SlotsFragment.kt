@@ -1,7 +1,9 @@
 package com.flash.smasharena.presentation.slots
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -13,7 +15,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentSlotsBinding
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.flash.smasharena.domain.model.SlotStatus
+import com.flash.smasharena.util.toUserMessage
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import dev.androidbroadcast.vbpd.viewBinding
@@ -35,6 +38,7 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
         setupDateStrip()
         setupSlotGrid()
         setupBookButton()
+        setupConfirmationListeners()
         observeUiState()
     }
 
@@ -59,29 +63,39 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     }
 
     private fun setupBookButton() {
-        binding.btnBook.setOnClickListener { showBookingConfirmation() }
+        binding.btnBook.setOnClickListener {
+            val slot = viewModel.uiState.value.selectedSlot ?: return@setOnClickListener
+            if (slot.effectiveStatus == SlotStatus.MY_BOOKING) showCancelConfirmation()
+            else showBookingConfirmation()
+        }
+    }
+
+    private fun setupConfirmationListeners() {
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_BOOK, viewLifecycleOwner
+        ) { _, _ -> viewModel.bookSelectedSlot() }
+
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_CANCEL_SLOT, viewLifecycleOwner
+        ) { _, _ -> viewModel.cancelSelectedSlot() }
+    }
+
+    private fun showCancelConfirmation() {
+        val state = viewModel.uiState.value
+        val slot = state.selectedSlot ?: return
+        val dateItem = state.dates.find { it.isSelected }
+        val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
+        ConfirmationDialog.cancelSlot(state.facilityName, dateLabel, slot.timeLabel)
+            .show(childFragmentManager, "confirm_cancel_slot")
     }
 
     private fun showBookingConfirmation() {
         val state = viewModel.uiState.value
         val slot = state.selectedSlot ?: return
         val dateItem = state.dates.find { it.isSelected }
-
         val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_book_title)
-            .setMessage(
-                getString(
-                    R.string.dialog_book_message,
-                    state.facilityName,
-                    dateLabel,
-                    slot.timeLabel,
-                )
-            )
-            .setPositiveButton(R.string.dialog_book_confirm) { _, _ -> viewModel.bookSelectedSlot() }
-            .setNegativeButton(R.string.dialog_cancel, null)
-            .show()
+        ConfirmationDialog.book(state.facilityName, dateLabel, slot.timeLabel)
+            .show(childFragmentManager, "confirm_book")
     }
 
     private fun observeUiState() {
@@ -93,20 +107,35 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
                     dateAdapter.submitList(state.dates)
                     slotAdapter.submitList(state.slots)
 
-                    binding.btnBook.isVisible = state.selectedSlot != null && !state.isBooking
+                    val busy = state.isBooking || state.isCancelling
+                    val isCancelSelected = state.selectedSlot?.effectiveStatus == SlotStatus.MY_BOOKING
+                    binding.btnBook.isVisible = state.selectedSlot != null && !busy
                     binding.btnBook.text = state.selectedSlot?.let {
-                        "Book ${it.timeLabel}"
+                        if (isCancelSelected) "Cancel ${it.timeLabel}" else "Book ${it.timeLabel}"
                     } ?: getString(R.string.booking_confirm)
-                    binding.progressBooking.isVisible = state.isBooking
+                    binding.btnBook.backgroundTintList = ColorStateList.valueOf(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            if (isCancelSelected) R.color.cancel_action else R.color.accent_green,
+                        )
+                    )
+                    binding.btnBook.setTextColor(
+                        ContextCompat.getColor(
+                            requireContext(),
+                            if (isCancelSelected) R.color.text_primary else R.color.background,
+                        )
+                    )
+                    binding.progressBooking.isVisible = busy
 
-                    if (state.bookingSuccess) {
-                        viewModel.onBookingSuccessShown()
-                        Snackbar.make(requireView(), R.string.booking_success, Snackbar.LENGTH_LONG).show()
+                    state.bookingResultInfo?.let { info ->
+                        viewModel.onResultShown()
+                        BookingResultDialog.newInstance(info)
+                            .show(childFragmentManager, "booking_result")
                     }
 
-                    state.error?.let {
+                    state.error?.let { error ->
                         viewModel.onErrorShown()
-                        Snackbar.make(requireView(), it, Snackbar.LENGTH_LONG).show()
+                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
                     }
                 }
             }

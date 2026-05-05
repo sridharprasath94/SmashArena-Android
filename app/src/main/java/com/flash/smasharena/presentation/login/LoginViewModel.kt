@@ -4,6 +4,7 @@ import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.smasharena.domain.repository.AuthRepository
+import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,7 @@ class LoginViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, generalError = null) }
             authRepository.signInWithEmail(email, password)
                 .onSuccess { _uiState.update { it.copy(isLoading = false, navigateToHome = true) } }
-                .onFailure { e -> _uiState.update { it.copy(isLoading = false, generalError = friendlyMessage(e)) } }
+                .onFailure { e -> _uiState.update { it.copy(isLoading = false, generalError = e.toAppError()) } }
         }
     }
 
@@ -38,7 +39,7 @@ class LoginViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, generalError = null) }
             authRepository.createAccountWithEmail(email, password)
                 .onSuccess { _uiState.update { it.copy(isLoading = false, navigateToHome = true) } }
-                .onFailure { e -> _uiState.update { it.copy(isLoading = false, generalError = friendlyMessage(e)) } }
+                .onFailure { e -> _uiState.update { it.copy(isLoading = false, generalError = e.toAppError()) } }
         }
     }
 
@@ -47,11 +48,12 @@ class LoginViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, generalError = null) }
             authRepository.signInWithGoogle(idToken)
                 .onSuccess { _uiState.update { it.copy(isLoading = false, navigateToHome = true) } }
-                .onFailure { e -> _uiState.update { it.copy(isLoading = false, generalError = friendlyMessage(e)) } }
+                .onFailure { e -> _uiState.update { it.copy(isLoading = false, generalError = e.toAppError()) } }
         }
     }
 
     fun onNavigatedToHome() = _uiState.update { it.copy(navigateToHome = false) }
+    fun onGeneralErrorShown() = _uiState.update { it.copy(generalError = null) }
 
     private fun validate(email: String, password: String): Boolean {
         val emailError = when {
@@ -66,13 +68,5 @@ class LoginViewModel @Inject constructor(
         }
         _uiState.update { it.copy(emailError = emailError, passwordError = passwordError) }
         return emailError == null && passwordError == null
-    }
-
-    private fun friendlyMessage(e: Throwable): String = when {
-        e.message?.contains("no user record") == true -> "No account found with this email."
-        e.message?.contains("password is invalid") == true -> "Incorrect password."
-        e.message?.contains("email address is already in use") == true -> "An account already exists with this email."
-        e.message?.contains("network") == true -> "Check your internet connection and try again."
-        else -> "Something went wrong. Please try again."
     }
 }

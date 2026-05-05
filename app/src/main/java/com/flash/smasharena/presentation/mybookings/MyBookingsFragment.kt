@@ -12,7 +12,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentMyBookingsBinding
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.flash.smasharena.presentation.slots.ConfirmationDialog
+import com.flash.smasharena.util.toUserMessage
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import dev.androidbroadcast.vbpd.viewBinding
@@ -31,6 +32,7 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
 
         setupToolbar()
         setupRecyclerView()
+        setupConfirmationListener()
         observeUiState()
     }
 
@@ -46,22 +48,22 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
         }
     }
 
+    private fun setupConfirmationListener() {
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_CANCEL_BOOKING, viewLifecycleOwner
+        ) { _, bundle ->
+            val docId = bundle.getString(ConfirmationDialog.KEY_DOC_ID, "")
+            if (docId.isNotEmpty()) viewModel.cancelBooking(docId)
+        }
+    }
+
     private fun showCancelConfirmation(item: BookingItem) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(getString(R.string.dialog_cancel_booking_title))
-            .setMessage(
-                getString(
-                    R.string.dialog_cancel_booking_message,
-                    item.facilityDisplayName,
-                    item.displayDate,
-                    item.timeLabel,
-                )
-            )
-            .setPositiveButton(R.string.dialog_cancel_booking_confirm) { _, _ ->
-                viewModel.cancelBooking(item.docId)
-            }
-            .setNegativeButton(R.string.dialog_keep, null)
-            .show()
+        ConfirmationDialog.cancelBooking(
+            facilityName = item.facilityDisplayName,
+            dateLabel = item.displayDate,
+            timeLabel = item.timeLabel,
+            docId = item.docId,
+        ).show(childFragmentManager, "confirm_cancel_booking")
     }
 
     private fun observeUiState() {
@@ -75,9 +77,9 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
                     adapter.cancellingDocId = state.cancellingDocId
                     adapter.submitList(state.bookings)
 
-                    state.error?.let {
+                    state.error?.let { error ->
                         viewModel.onErrorShown()
-                        Snackbar.make(requireView(), it, Snackbar.LENGTH_LONG).show()
+                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
                     }
                 }
             }

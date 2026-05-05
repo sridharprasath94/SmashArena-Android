@@ -1,8 +1,11 @@
 package com.flash.smasharena.data.repository
 
+import com.flash.smasharena.domain.model.AppError
 import com.flash.smasharena.domain.model.Slot
 import com.flash.smasharena.domain.model.SlotStatus
 import com.flash.smasharena.domain.repository.SlotRepository
+import com.flash.smasharena.util.NetworkMonitor
+import com.flash.smasharena.util.toAppError
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.DocumentSnapshot
@@ -17,6 +20,7 @@ import kotlin.coroutines.resumeWithException
 class SlotRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val firebaseAuth: FirebaseAuth,
+    private val networkMonitor: NetworkMonitor,
 ) : SlotRepository {
 
     override fun observeSlots(facilityId: String, date: String): Flow<List<Slot>> = callbackFlow {
@@ -26,7 +30,7 @@ class SlotRepositoryImpl @Inject constructor(
 
         val listener = query.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                close(error.toAppError())
                 return@addSnapshotListener
             }
             val bookedSlots = snapshot?.documents
@@ -34,7 +38,6 @@ class SlotRepositoryImpl @Inject constructor(
                 ?.associateBy { it.hour }
                 ?: emptyMap()
 
-            // Always emit all 17 slots; overlay Firestore data on top
             val allSlots = (5..21).map { hour ->
                 bookedSlots[hour] ?: Slot(
                     facilityId = facilityId,
@@ -58,7 +61,7 @@ class SlotRepositoryImpl @Inject constructor(
         val listener = firestore.collection("slots")
             .whereEqualTo("bookedBy", uid)
             .addSnapshotListener { snapshot, error ->
-                if (error != null) { close(error); return@addSnapshotListener }
+                if (error != null) { close(error.toAppError()); return@addSnapshotListener }
                 val slots = snapshot?.documents
                     ?.mapNotNull { it.toSlot() }
                     ?.filter { it.date >= today }
@@ -70,23 +73,24 @@ class SlotRepositoryImpl @Inject constructor(
     }
 
     override suspend fun cancelBooking(docId: String): Result<Unit> = runCatching {
-        val uid = firebaseAuth.currentUser?.uid ?: error("Not signed in")
+        if (!networkMonitor.isConnected()) throw AppError.NoInternet
+        val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
         suspendCancellableCoroutine { cont ->
             val docRef = firestore.collection("slots").document(docId)
-            // Verify ownership then delete in a transaction
             firestore.runTransaction { tx ->
                 val snapshot = tx.get(docRef)
-                if (snapshot.getString("bookedBy") != uid) error("Not your booking")
+                if (snapshot.getString("bookedBy") != uid) throw AppError.NotYourBooking
                 tx.delete(docRef)
             }
                 .addOnSuccessListener { cont.resume(Unit) }
-                .addOnFailureListener { cont.resumeWithException(it) }
+                .addOnFailureListener { cont.resumeWithException(it.toAppError()) }
         }
     }
 
     override suspend fun bookSlot(facilityId: String, date: String, hour: Int): Result<Unit> =
         runCatching {
-            val uid = firebaseAuth.currentUser?.uid ?: error("Not signed in")
+            if (!networkMonitor.isConnected()) throw AppError.NoInternet
+            val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
             val docRef = firestore.collection("slots")
                 .document("${facilityId}_${date}_${hour}")
 
@@ -94,7 +98,7 @@ class SlotRepositoryImpl @Inject constructor(
                 firestore.runTransaction { tx ->
                     val snapshot = tx.get(docRef)
                     if (snapshot.exists() && snapshot.getString("status") == "booked") {
-                        throw Exception("This slot was just booked by someone else.")
+                        throw AppError.SlotAlreadyBooked
                     }
                     tx.set(
                         docRef, mapOf(
@@ -108,7 +112,7 @@ class SlotRepositoryImpl @Inject constructor(
                     )
                 }
                     .addOnSuccessListener { cont.resume(Unit) }
-                    .addOnFailureListener { cont.resumeWithException(it) }
+                    .addOnFailureListener { cont.resumeWithException(it.toAppError()) }
             }
         }
 

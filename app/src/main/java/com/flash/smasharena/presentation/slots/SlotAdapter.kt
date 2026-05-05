@@ -35,7 +35,7 @@ class SlotAdapter(
                     SlotStatus.BOOKED      -> R.color.slot_booked
                     SlotStatus.MEMBER_HOLD -> R.color.slot_member_hold
                     SlotStatus.LOCKED      -> R.color.slot_locked
-                    SlotStatus.MY_BOOKING  -> R.color.slot_my_booking
+                    SlotStatus.MY_BOOKING  -> if (item.isSelected) R.color.slot_my_booking_selected else R.color.slot_my_booking
                 }
             )
             binding.root.setCardBackgroundColor(bgColor)
@@ -44,7 +44,7 @@ class SlotAdapter(
             binding.root.strokeWidth = strokeWidth
             binding.root.strokeColor = ContextCompat.getColor(ctx, R.color.text_primary)
 
-            val isClickable = item.effectiveStatus == SlotStatus.AVAILABLE
+            val isClickable = item.effectiveStatus == SlotStatus.AVAILABLE || item.effectiveStatus == SlotStatus.MY_BOOKING
             binding.root.isClickable = isClickable
             binding.root.isFocusable = isClickable
             binding.root.setOnClickListener { if (isClickable) onSlotClicked(item) }

@@ -27,6 +27,10 @@
     <string name="booking_title">Book %1$s</string>
     <string name="booking_confirm">Confirm booking</string>
     <string name="booking_success">Slot booked! See you there.</string>
+    <string name="booking_cancelled">Booking cancelled.</string>
+    <string name="result_booked_title">Booking Confirmed!</string>
+    <string name="result_cancelled_title">Booking Cancelled</string>
+    <string name="btn_done">Done</string>
 
     <!-- Slots screen -->
     <string name="label_select_date">Select a date</string>
@@ -45,6 +49,9 @@
     <string name="dialog_book_title">Confirm booking</string>
     <string name="dialog_book_message">%1$s\n%2$s · %3$s</string>
     <string name="dialog_book_confirm">Book</string>
+    <string name="dialog_confirm_book_title">Confirm Booking?</string>
+    <string name="dialog_confirm_cancel_title">Cancel Booking?</string>
+    <string name="dialog_confirm_logout_title">Log Out?</string>
     <string name="dialog_cancel_booking_title">Cancel booking?</string>
     <string name="dialog_cancel_booking_message">Cancel your %1$s booking on %2$s at %3$s?\n\nThis slot will be released back to the pool.</string>
     <string name="dialog_cancel_booking_confirm">Cancel booking</string>
@@ -52,7 +59,16 @@
     <string name="booking_cancel">Cancel</string>
 
     <!-- Errors -->
-    <string name="error_slot_taken">That slot is already booked. Please pick another time.</string>
+    <string name="error_no_internet">No internet connection. Please check your network and try again.</string>
+    <string name="error_service_unavailable">Service is temporarily unavailable. Please try again in a moment.</string>
+    <string name="error_not_signed_in">You\'ve been signed out. Please sign in again.</string>
+    <string name="error_account_not_found">No account found with this email address.</string>
+    <string name="error_wrong_credentials">Incorrect email or password. Please try again.</string>
+    <string name="error_email_in_use">An account already exists with this email.</string>
+    <string name="error_weak_password">Password is too weak. Please use at least 6 characters.</string>
+    <string name="error_slot_taken">That slot was just booked by someone else. Please pick another time.</string>
+    <string name="error_not_your_booking">You can only cancel your own bookings.</string>
+    <string name="error_permission_denied">Access denied. Please try again or contact support.</string>
     <string name="error_outside_booking_window">This slot isn\'t available for booking yet.</string>
     <string name="error_quota_exceeded">You\'ve used all your sessions for this month.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>

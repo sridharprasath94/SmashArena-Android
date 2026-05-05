@@ -9,6 +9,7 @@ import com.flash.smasharena.domain.repository.UserRepository
 import com.flash.smasharena.domain.model.UserProfile
 import com.flash.smasharena.util.BookingWindowUtils
 import com.flash.smasharena.util.DateTimeUtils
+import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,7 +100,7 @@ class SlotsViewModel @Inject constructor(
     }
 
     fun selectSlot(slot: DisplaySlot) {
-        if (slot.effectiveStatus != SlotStatus.AVAILABLE) return
+        if (slot.effectiveStatus != SlotStatus.AVAILABLE && slot.effectiveStatus != SlotStatus.MY_BOOKING) return
         val alreadySelected = _uiState.value.selectedSlot?.hour == slot.hour
         val newSelected = if (alreadySelected) null else slot
         _uiState.update { state ->
@@ -112,19 +113,57 @@ class SlotsViewModel @Inject constructor(
 
     fun bookSelectedSlot() {
         val slot = _uiState.value.selectedSlot ?: return
-        val date = _uiState.value.dates.find { it.isSelected }?.dateString ?: return
+        val dateItem = _uiState.value.dates.find { it.isSelected } ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isBooking = true, error = null) }
-            slotRepository.bookSlot(facilityId, date, slot.hour)
+            slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour)
                 .onSuccess {
-                    _uiState.update { it.copy(isBooking = false, bookingSuccess = true, selectedSlot = null) }
+                    _uiState.update {
+                        it.copy(
+                            isBooking = false,
+                            selectedSlot = null,
+                            bookingResultInfo = BookingResultInfo(
+                                type = ResultType.BOOKED,
+                                facilityName = facilityName,
+                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+                                timeLabel = slot.timeLabel,
+                            )
+                        )
+                    }
                 }
                 .onFailure { e ->
-                    _uiState.update { it.copy(isBooking = false, error = e.message) }
+                    _uiState.update { it.copy(isBooking = false, error = e.toAppError()) }
+                }
+        }
+    }
+
+    fun cancelSelectedSlot() {
+        val slot = _uiState.value.selectedSlot ?: return
+        val dateItem = _uiState.value.dates.find { it.isSelected } ?: return
+        val docId = "${facilityId}_${dateItem.dateString}_${slot.hour}"
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCancelling = true, error = null) }
+            slotRepository.cancelBooking(docId)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isCancelling = false,
+                            selectedSlot = null,
+                            bookingResultInfo = BookingResultInfo(
+                                type = ResultType.CANCELLED,
+                                facilityName = facilityName,
+                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+                                timeLabel = slot.timeLabel,
+                            )
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(isCancelling = false, error = e.toAppError()) }
                 }
         }
     }
 
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
-    fun onBookingSuccessShown() = _uiState.update { it.copy(bookingSuccess = false) }
+    fun onResultShown() = _uiState.update { it.copy(bookingResultInfo = null) }
 }
