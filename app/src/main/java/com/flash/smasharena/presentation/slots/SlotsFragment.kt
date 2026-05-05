@@ -17,7 +17,6 @@ import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentSlotsBinding
 import com.flash.smasharena.domain.model.SlotStatus
 import com.flash.smasharena.util.toUserMessage
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import dev.androidbroadcast.vbpd.viewBinding
@@ -39,6 +38,7 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
         setupDateStrip()
         setupSlotGrid()
         setupBookButton()
+        setupConfirmationListeners()
         observeUiState()
     }
 
@@ -70,47 +70,32 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
         }
     }
 
+    private fun setupConfirmationListeners() {
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_BOOK, viewLifecycleOwner
+        ) { _, _ -> viewModel.bookSelectedSlot() }
+
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_CANCEL_SLOT, viewLifecycleOwner
+        ) { _, _ -> viewModel.cancelSelectedSlot() }
+    }
+
     private fun showCancelConfirmation() {
         val state = viewModel.uiState.value
         val slot = state.selectedSlot ?: return
         val dateItem = state.dates.find { it.isSelected }
         val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_cancel_booking_title)
-            .setMessage(
-                getString(
-                    R.string.dialog_cancel_booking_message,
-                    state.facilityName,
-                    dateLabel,
-                    slot.timeLabel,
-                )
-            )
-            .setPositiveButton(R.string.dialog_cancel_booking_confirm) { _, _ -> viewModel.cancelSelectedSlot() }
-            .setNegativeButton(R.string.dialog_keep, null)
-            .show()
+        ConfirmationDialog.cancelSlot(state.facilityName, dateLabel, slot.timeLabel)
+            .show(childFragmentManager, "confirm_cancel_slot")
     }
 
     private fun showBookingConfirmation() {
         val state = viewModel.uiState.value
         val slot = state.selectedSlot ?: return
         val dateItem = state.dates.find { it.isSelected }
-
         val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_book_title)
-            .setMessage(
-                getString(
-                    R.string.dialog_book_message,
-                    state.facilityName,
-                    dateLabel,
-                    slot.timeLabel,
-                )
-            )
-            .setPositiveButton(R.string.dialog_book_confirm) { _, _ -> viewModel.bookSelectedSlot() }
-            .setNegativeButton(R.string.dialog_cancel, null)
-            .show()
+        ConfirmationDialog.book(state.facilityName, dateLabel, slot.timeLabel)
+            .show(childFragmentManager, "confirm_book")
     }
 
     private fun observeUiState() {

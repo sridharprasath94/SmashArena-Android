@@ -11,9 +11,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentHomeBinding
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.flash.smasharena.domain.model.Facility
 import com.flash.smasharena.domain.model.MembershipTier
+import com.flash.smasharena.presentation.slots.ConfirmationDialog
 import dev.androidbroadcast.vbpd.viewBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -30,6 +30,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         setupToolbar()
         setupFacilityCards()
         setupMembershipBanner()
+        setupLogoutListener()
         observeUiState()
     }
 
@@ -49,13 +50,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    private fun setupLogoutListener() {
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_LOGOUT, viewLifecycleOwner
+        ) { _, _ -> viewModel.signOut() }
+    }
+
     private fun showLogoutConfirmation() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_logout_title)
-            .setMessage(R.string.dialog_logout_message)
-            .setPositiveButton(R.string.dialog_logout_confirm) { _, _ -> viewModel.signOut() }
-            .setNegativeButton(R.string.dialog_cancel, null)
-            .show()
+        ConfirmationDialog.logout(getString(R.string.dialog_logout_message))
+            .show(childFragmentManager, "confirm_logout")
     }
 
     private fun updateSyncLabel(syncedAt: String) {
