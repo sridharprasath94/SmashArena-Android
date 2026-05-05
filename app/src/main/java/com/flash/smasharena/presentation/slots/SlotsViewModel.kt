@@ -26,7 +26,7 @@ class SlotsViewModel @Inject constructor(
     private val userRepository: UserRepository,
 ) : ViewModel() {
 
-    private val facilityId: String = checkNotNull(savedStateHandle["facilityId"])
+    val facilityId: String = checkNotNull(savedStateHandle["facilityId"])
     private val facilityName: String = checkNotNull(savedStateHandle["facilityName"])
 
     private val _uiState = MutableStateFlow(SlotsUiState(facilityName = facilityName))
@@ -108,32 +108,6 @@ class SlotsViewModel @Inject constructor(
                 slots = state.slots.map { it.copy(isSelected = it.hour == newSelected?.hour) },
                 selectedSlot = newSelected,
             )
-        }
-    }
-
-    fun bookSelectedSlot() {
-        val slot = _uiState.value.selectedSlot ?: return
-        val dateItem = _uiState.value.dates.find { it.isSelected } ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isBooking = true, error = null) }
-            slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isBooking = false,
-                            selectedSlot = null,
-                            bookingResultInfo = BookingResultInfo(
-                                type = ResultType.BOOKED,
-                                facilityName = facilityName,
-                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
-                                timeLabel = slot.timeLabel,
-                            )
-                        )
-                    }
-                }
-                .onFailure { e ->
-                    _uiState.update { it.copy(isBooking = false, error = e.toAppError()) }
-                }
         }
     }
 

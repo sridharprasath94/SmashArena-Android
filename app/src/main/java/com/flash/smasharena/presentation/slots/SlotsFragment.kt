@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentSlotsBinding
+import com.flash.smasharena.domain.model.Facility
 import com.flash.smasharena.domain.model.SlotStatus
 import com.flash.smasharena.util.toUserMessage
 import com.google.android.material.snackbar.Snackbar
@@ -39,6 +40,7 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
         setupSlotGrid()
         setupBookButton()
         setupConfirmationListeners()
+        observePaymentResult()
         observeUiState()
     }
 
@@ -68,7 +70,7 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
             when {
                 slot.effectiveStatus == SlotStatus.MY_BOOKING -> showCancelConfirmation()
                 viewModel.wouldExceedConsecutiveLimit() -> showConsecutiveLimitDialog()
-                else -> showBookingConfirmation()
+                else -> navigateToPayment()
             }
         }
     }
@@ -79,10 +81,6 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     }
 
     private fun setupConfirmationListeners() {
-        childFragmentManager.setFragmentResultListener(
-            ConfirmationDialog.REQUEST_BOOK, viewLifecycleOwner
-        ) { _, _ -> viewModel.bookSelectedSlot() }
-
         childFragmentManager.setFragmentResultListener(
             ConfirmationDialog.REQUEST_CANCEL_SLOT, viewLifecycleOwner
         ) { _, _ -> viewModel.cancelSelectedSlot() }
@@ -97,13 +95,38 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
             .show(childFragmentManager, "confirm_cancel_slot")
     }
 
-    private fun showBookingConfirmation() {
+    private fun navigateToPayment() {
         val state = viewModel.uiState.value
         val slot = state.selectedSlot ?: return
-        val dateItem = state.dates.find { it.isSelected }
-        val dateLabel = dateItem?.let { "${it.dayLabel}, ${it.dayNumber}" } ?: ""
-        ConfirmationDialog.book(state.facilityName, dateLabel, slot.timeLabel)
-            .show(childFragmentManager, "confirm_book")
+        val dateItem = state.dates.find { it.isSelected } ?: return
+        val amount = Facility.entries.find { it.id == viewModel.facilityId }
+            ?.priceForHour(slot.hour) ?: 0
+        val action = SlotsFragmentDirections.actionSlotsFragmentToPaymentFragment(
+            facilityId   = viewModel.facilityId,
+            facilityName = state.facilityName,
+            date         = dateItem.dateString,
+            dateLabel    = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+            hour         = slot.hour,
+            timeLabel    = slot.timeLabel,
+            amount       = amount,
+        )
+        findNavController().navigate(action)
+    }
+
+    private fun observePaymentResult() {
+        findNavController().currentBackStackEntry
+            ?.savedStateHandle
+            ?.getLiveData<Bundle>("booking_result")
+            ?.observe(viewLifecycleOwner) { bundle ->
+                findNavController().currentBackStackEntry
+                    ?.savedStateHandle?.remove<Bundle>("booking_result")
+                val facilityName = bundle.getString("facilityName") ?: return@observe
+                val dateLabel    = bundle.getString("dateLabel")    ?: return@observe
+                val timeLabel    = bundle.getString("timeLabel")    ?: return@observe
+                BookingResultDialog.newInstance(
+                    BookingResultInfo(ResultType.BOOKED, facilityName, dateLabel, timeLabel)
+                ).show(childFragmentManager, "booking_result")
+            }
     }
 
     private fun observeUiState() {
@@ -115,7 +138,7 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
                     dateAdapter.submitList(state.dates)
                     slotAdapter.submitList(state.slots)
 
-                    val busy = state.isBooking || state.isCancelling
+                    val busy = state.isCancelling
                     val isCancelSelected = state.selectedSlot?.effectiveStatus == SlotStatus.MY_BOOKING
                     binding.btnBook.isVisible = state.selectedSlot != null && !busy
                     binding.btnBook.text = state.selectedSlot?.let {
