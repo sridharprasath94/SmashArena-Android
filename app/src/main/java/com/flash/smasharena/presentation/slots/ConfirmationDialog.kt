@@ -34,7 +34,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         val requestKey = args.getString(ARG_REQUEST_KEY, "")
         val docId = args.getString(ARG_DOC_ID, "")
 
-        val isDestructive = type == Type.CANCEL || type == Type.LOGOUT
+        val isDestructive = type == Type.CANCEL || type == Type.LOGOUT || type == Type.INFO
 
         val accentColor = ContextCompat.getColor(
             requireContext(),
@@ -55,6 +55,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.BOOK -> R.drawable.ic_check
                 Type.CANCEL -> R.drawable.ic_close
                 Type.LOGOUT -> R.drawable.ic_logout
+                Type.INFO -> R.drawable.ic_close
             }
         )
         binding.ivIcon.imageTintList = ColorStateList.valueOf(accentColor)
@@ -64,6 +65,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.BOOK -> R.string.dialog_confirm_book_title
                 Type.CANCEL -> R.string.dialog_confirm_cancel_title
                 Type.LOGOUT -> R.string.dialog_confirm_logout_title
+                Type.INFO -> R.string.dialog_consecutive_limit_title
             }
         )
         binding.tvSubtitle.text = subtitle
@@ -75,6 +77,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.BOOK -> R.string.dialog_book_confirm
                 Type.CANCEL -> R.string.dialog_cancel_booking_confirm
                 Type.LOGOUT -> R.string.dialog_logout_confirm
+                Type.INFO -> R.string.dialog_got_it
             }
         )
         binding.btnConfirm.backgroundTintList = ColorStateList.valueOf(accentColor)
@@ -85,13 +88,14 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
             )
         )
         binding.btnConfirm.setOnClickListener {
-            setFragmentResult(requestKey, bundleOf(KEY_DOC_ID to docId))
+            if (type != Type.INFO) setFragmentResult(requestKey, bundleOf(KEY_DOC_ID to docId))
             dismissAllowingStateLoss()
         }
 
+        binding.btnDismiss.isVisible = type != Type.INFO
         binding.btnDismiss.text = getString(
             when (type) {
-                Type.BOOK, Type.LOGOUT -> R.string.dialog_cancel
+                Type.BOOK, Type.LOGOUT, Type.INFO -> R.string.dialog_cancel
                 Type.CANCEL -> R.string.dialog_keep
             }
         )
@@ -121,7 +125,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         }, 80)
     }
 
-    enum class Type { BOOK, CANCEL, LOGOUT }
+    enum class Type { BOOK, CANCEL, LOGOUT, INFO }
 
     companion object {
         const val REQUEST_BOOK = "confirm_book"
@@ -147,6 +151,9 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
 
         fun logout(message: String) =
             build(Type.LOGOUT, REQUEST_LOGOUT, message, null)
+
+        fun limitReached(message: String) =
+            build(Type.INFO, "", message, null)
 
         private fun build(
             type: Type,

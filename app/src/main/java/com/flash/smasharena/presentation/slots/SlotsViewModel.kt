@@ -164,6 +164,27 @@ class SlotsViewModel @Inject constructor(
         }
     }
 
+    fun wouldExceedConsecutiveLimit(): Boolean {
+        val state = _uiState.value
+        val selectedHour = state.selectedSlot?.hour ?: return false
+        if (state.selectedSlot?.effectiveStatus == SlotStatus.MY_BOOKING) return false
+        val myBookingHours = state.slots
+            .filter { it.effectiveStatus == SlotStatus.MY_BOOKING }
+            .map { it.hour }
+            .toSet()
+        return exceedsConsecutiveLimit(myBookingHours, selectedHour)
+    }
+
+    private fun exceedsConsecutiveLimit(bookedHours: Set<Int>, newHour: Int): Boolean {
+        val allHours = (bookedHours + newHour).sorted()
+        var run = 1
+        for (i in 1 until allHours.size) {
+            run = if (allHours[i] == allHours[i - 1] + 1) run + 1 else 1
+            if (run > 2) return true
+        }
+        return false
+    }
+
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
     fun onResultShown() = _uiState.update { it.copy(bookingResultInfo = null) }
 }
