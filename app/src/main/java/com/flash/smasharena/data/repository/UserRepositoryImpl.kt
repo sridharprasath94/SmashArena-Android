@@ -73,6 +73,7 @@ class UserRepositoryImpl @Inject constructor(
                     "sessionsUsed" to 0,
                     "cricketSessionsUsed" to 0,
                     "membershipExpiry" to expiry,
+                    "membershipCancelled" to false,
                 )
             )
                 .addOnSuccessListener { cont.resume(Unit) }
@@ -91,6 +92,7 @@ class UserRepositoryImpl @Inject constructor(
                     "membershipTier" to newTier.name,
                     "sessionsQuota" to newTier.sessionsPerMonth,
                     "membershipExpiry" to expiry,
+                    "membershipCancelled" to false,
                 )
             )
                 .addOnSuccessListener { cont.resume(Unit) }
@@ -102,16 +104,10 @@ class UserRepositoryImpl @Inject constructor(
         if (!networkMonitor.isConnected()) throw AppError.NoInternet
         val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
         val docRef = firestore.collection("users").document(uid)
+        // Keep tier/expiry/sessions intact so remaining benefits stay accessible until cycle ends.
+        // Only set the cancelled flag to stop renewal.
         suspendCancellableCoroutine { cont ->
-            docRef.update(
-                mapOf(
-                    "membershipTier" to MembershipTier.NONE.name,
-                    "sessionsQuota" to 0,
-                    "sessionsUsed" to 0,
-                    "cricketSessionsUsed" to 0,
-                    "membershipExpiry" to null,
-                )
-            )
+            docRef.update(mapOf("membershipCancelled" to true))
                 .addOnSuccessListener { cont.resume(Unit) }
                 .addOnFailureListener { cont.resumeWithException(it) }
         }
@@ -158,6 +154,7 @@ class UserRepositoryImpl @Inject constructor(
             sessionsUsed = getLong("sessionsUsed")?.toInt() ?: 0,
             sessionsQuota = getLong("sessionsQuota")?.toInt() ?: 0,
             cricketSessionsUsed = getLong("cricketSessionsUsed")?.toInt() ?: 0,
+            membershipCancelled = getBoolean("membershipCancelled") ?: false,
         )
     }
 }

@@ -135,6 +135,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                         if (isActiveMember) {
                             binding.membershipBanner.tvPlanName.text = tier.displayName
+                            binding.membershipBanner.tvCancelledBadge.isVisible = profile.membershipCancelled
                             binding.membershipBanner.tvBadmintonRemaining.text =
                                 "🏸 ${profile.sessionsRemaining} / ${tier.sessionsPerMonth}"
                             binding.membershipBanner.tvCricketRemaining.text =
@@ -143,7 +144,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             binding.membershipBanner.tvValidity.text = profile.membershipExpiry?.let { expiry ->
                                 val startCal = Calendar.getInstance().apply { timeInMillis = expiry }
                                 startCal.add(Calendar.DAY_OF_MONTH, -30)
-                                "${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}"
+                                val suffix = if (profile.membershipCancelled) " · Expires" else ""
+                                "${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}$suffix"
                             } ?: ""
                         }
 

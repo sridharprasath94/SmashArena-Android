@@ -9,6 +9,7 @@ data class UserProfile(
     val sessionsUsed: Int,
     val sessionsQuota: Int,
     val cricketSessionsUsed: Int = 0,
+    val membershipCancelled: Boolean = false,
 ) {
     val sessionsRemaining: Int get() = (sessionsQuota - sessionsUsed).coerceAtLeast(0)
     val cricketSessionsRemaining: Int

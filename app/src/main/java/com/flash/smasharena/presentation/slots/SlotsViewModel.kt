@@ -4,10 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.smasharena.domain.model.Facility
+import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.domain.model.SlotStatus
+import com.flash.smasharena.domain.model.UserProfile
 import com.flash.smasharena.domain.repository.SlotRepository
 import com.flash.smasharena.domain.repository.UserRepository
-import com.flash.smasharena.domain.model.UserProfile
 import com.flash.smasharena.util.BookingWindowUtils
 import com.flash.smasharena.util.DateTimeUtils
 import com.flash.smasharena.util.toAppError
@@ -46,7 +47,7 @@ class SlotsViewModel @Inject constructor(
     }
 
     private fun buildDateStrip() {
-        val isMember = userProfile?.isMember == true
+        val tier = userProfile?.membershipTier ?: MembershipTier.NONE
         val dates = (0..13).map { offset ->
             val dateString = DateTimeUtils.dateWithOffset(offset)
             val daysUntil = DateTimeUtils.daysUntil(dateString)
@@ -55,7 +56,7 @@ class SlotsViewModel @Inject constructor(
                 dayLabel = DateTimeUtils.dayLabel(dateString),
                 dayNumber = DateTimeUtils.dayNumber(dateString),
                 isSelected = false,
-                isBrowsable = BookingWindowUtils.isDateBrowsable(daysUntil, isMember),
+                isBrowsable = BookingWindowUtils.isDateBrowsable(daysUntil, tier),
             )
         }
         _uiState.update { it.copy(dates = dates) }
@@ -75,7 +76,7 @@ class SlotsViewModel @Inject constructor(
     private fun observeSlots(date: String) {
         slotObserverJob?.cancel()
         slotObserverJob = viewModelScope.launch {
-            val isMember = userProfile?.isMember == true
+            val tier = userProfile?.membershipTier ?: MembershipTier.NONE
             val currentUid = userProfile?.uid
             val daysUntil = DateTimeUtils.daysUntil(date)
 
@@ -87,7 +88,7 @@ class SlotsViewModel @Inject constructor(
                     val effective = BookingWindowUtils.effectiveStatus(
                         daysUntilSlot = daysUntil,
                         serverStatus = slot.status,
-                        isMember = isMember,
+                        membershipTier = tier,
                         isMyBooking = isMyBooking,
                         slotHour = slot.hour,
                         currentHour = currentHour,

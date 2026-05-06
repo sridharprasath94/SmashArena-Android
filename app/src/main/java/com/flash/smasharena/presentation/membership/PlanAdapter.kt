@@ -32,7 +32,7 @@ class PlanAdapter(
             // Card border + premium elevation/scale/background for selected or current plan
             val active = item.isSelected || item.isCurrentPlan
             val (strokeColor, strokeWidth) = if (active) {
-                ContextCompat.getColor(ctx, R.color.accent_green) to 2
+                ContextCompat.getColor(ctx, R.color.accent_gold) to 2
             } else {
                 ContextCompat.getColor(ctx, R.color.outline) to 1
             }
