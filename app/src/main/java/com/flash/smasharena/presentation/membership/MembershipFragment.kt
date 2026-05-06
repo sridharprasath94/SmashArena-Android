@@ -55,7 +55,7 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
     private fun setupCancelButton() {
         binding.btnCancelMembership.setOnClickListener {
             val tierName = viewModel.uiState.value.currentTier.displayName
-            ConfirmationDialog.cancelMembership(tierName)
+            ConfirmationDialog.cancelMembership(tierName, getString(R.string.dialog_cancel_membership_detail))
                 .show(childFragmentManager, "confirm_cancel_membership")
         }
     }

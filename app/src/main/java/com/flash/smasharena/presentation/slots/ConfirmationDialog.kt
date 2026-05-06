@@ -160,8 +160,8 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         fun bookFree(facilityName: String, dateLabel: String, timeLabel: String) =
             build(Type.BOOK, REQUEST_BOOK_FREE, facilityName, "$dateLabel · $timeLabel")
 
-        fun cancelMembership(tierDisplayName: String) =
-            build(Type.CANCEL_MEMBERSHIP, REQUEST_CANCEL_MEMBERSHIP, tierDisplayName, null)
+        fun cancelMembership(tierDisplayName: String, detail: String) =
+            build(Type.CANCEL_MEMBERSHIP, REQUEST_CANCEL_MEMBERSHIP, tierDisplayName, detail)
 
         fun limitReached(message: String) =
             build(Type.INFO, "", message, null)
