@@ -22,8 +22,12 @@ object BookingWindowUtils {
         serverStatus: SlotStatus,
         isMember: Boolean,
         isMyBooking: Boolean,
+        slotHour: Int = -1,
+        currentHour: Int = -1,
     ): SlotStatus {
         if (isMyBooking) return SlotStatus.MY_BOOKING
+        // Slot hour has already passed today
+        if (daysUntilSlot == 0 && slotHour >= 0 && slotHour <= currentHour) return SlotStatus.LOCKED
         if (serverStatus == SlotStatus.BOOKED) return SlotStatus.BOOKED
 
         return when {

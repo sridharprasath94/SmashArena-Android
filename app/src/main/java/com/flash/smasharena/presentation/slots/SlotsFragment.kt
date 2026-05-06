@@ -173,6 +173,10 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
 
                     state.bookingResultInfo?.let { info ->
                         viewModel.onResultShown()
+                        runCatching {
+                            findNavController().getBackStackEntry(R.id.homeFragment)
+                                .savedStateHandle["session_updated"] = true
+                        }
                         BookingResultDialog.newInstance(info)
                             .show(childFragmentManager, "booking_result")
                     }

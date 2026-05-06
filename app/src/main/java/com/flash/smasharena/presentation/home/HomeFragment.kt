@@ -36,6 +36,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         setupMembershipBanner()
         setupLogoutListener()
         observeMembershipUpdates()
+        observeSessionUpdates()
         observeUiState()
     }
 
@@ -106,6 +107,19 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
     }
 
+    private fun observeSessionUpdates() {
+        findNavController().currentBackStackEntry
+            ?.savedStateHandle
+            ?.getLiveData<Boolean>("session_updated")
+            ?.observe(viewLifecycleOwner) { updated ->
+                if (updated == true) {
+                    findNavController().currentBackStackEntry
+                        ?.savedStateHandle?.remove<Boolean>("session_updated")
+                    viewModel.refreshProfile()
+                }
+            }
+    }
+
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -114,18 +128,37 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     updateSyncLabel(state.lastSyncedAt)
 
                     state.userProfile?.let { profile ->
-                        binding.membershipBanner.tvMembershipStatus.text = when (profile.membershipTier) {
-                            MembershipTier.NONE -> getString(R.string.membership_banner_none)
-                            else -> {
-                                val tier = profile.membershipTier
-                                val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
-                                val validity = profile.membershipExpiry?.let { expiry ->
-                                    val startCal = Calendar.getInstance().apply { timeInMillis = expiry }
-                                    startCal.add(Calendar.DAY_OF_MONTH, -30)
-                                    "  ·  ${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}"
-                                } ?: ""
-                                "${tier.displayName}  ·  🏸 ${tier.sessionsPerMonth}  🏏 ${tier.cricketSessionsPerMonth}$validity"
-                            }
+                        val tier = profile.membershipTier
+                        val isActiveMember = tier != MembershipTier.NONE
+                        binding.membershipBanner.layoutNoMembership.isVisible = !isActiveMember
+                        binding.membershipBanner.layoutMembershipDetail.isVisible = isActiveMember
+
+                        if (isActiveMember) {
+                            binding.membershipBanner.tvPlanName.text = tier.displayName
+                            binding.membershipBanner.tvBadmintonRemaining.text =
+                                "🏸 ${profile.sessionsRemaining} / ${tier.sessionsPerMonth}"
+                            binding.membershipBanner.tvCricketRemaining.text =
+                                "🏏 ${profile.cricketSessionsRemaining} / ${tier.cricketSessionsPerMonth}"
+                            val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
+                            binding.membershipBanner.tvValidity.text = profile.membershipExpiry?.let { expiry ->
+                                val startCal = Calendar.getInstance().apply { timeInMillis = expiry }
+                                startCal.add(Calendar.DAY_OF_MONTH, -30)
+                                "${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}"
+                            } ?: ""
+                        }
+
+                        // Facility card session hints
+                        binding.cardBadminton.tvSessionsRemaining.isVisible = isActiveMember
+                        binding.cardCricket.tvSessionsRemaining.isVisible = isActiveMember
+                        if (isActiveMember) {
+                            val badmintonLeft = profile.sessionsRemaining
+                            binding.cardBadminton.tvSessionsRemaining.text =
+                                if (badmintonLeft > 0) "🏸 $badmintonLeft free sessions left"
+                                else "Badminton quota used this month"
+                            val cricketLeft = profile.cricketSessionsRemaining
+                            binding.cardCricket.tvSessionsRemaining.text =
+                                if (cricketLeft > 0) "🏏 $cricketLeft free sessions left"
+                                else "Cricket quota used this month"
                         }
                     }
 

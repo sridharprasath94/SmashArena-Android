@@ -16,6 +16,7 @@ data class DisplaySlot(
     val timeLabel: String,
     val effectiveStatus: SlotStatus,
     val isSelected: Boolean,
+    val isFreeMembership: Boolean = false,
 )
 
 enum class ResultType { BOOKED, CANCELLED }
