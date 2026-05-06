@@ -3,13 +3,16 @@ package com.flash.smasharena.presentation.slots
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flash.smasharena.domain.model.Facility
+import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.domain.model.SlotStatus
+import com.flash.smasharena.domain.model.UserProfile
 import com.flash.smasharena.domain.repository.SlotRepository
 import com.flash.smasharena.domain.repository.UserRepository
-import com.flash.smasharena.domain.model.UserProfile
 import com.flash.smasharena.util.BookingWindowUtils
 import com.flash.smasharena.util.DateTimeUtils
 import com.flash.smasharena.util.toAppError
+import java.util.Calendar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +47,7 @@ class SlotsViewModel @Inject constructor(
     }
 
     private fun buildDateStrip() {
-        val isMember = userProfile?.isMember == true
+        val tier = userProfile?.membershipTier ?: MembershipTier.NONE
         val dates = (0..13).map { offset ->
             val dateString = DateTimeUtils.dateWithOffset(offset)
             val daysUntil = DateTimeUtils.daysUntil(dateString)
@@ -53,7 +56,7 @@ class SlotsViewModel @Inject constructor(
                 dayLabel = DateTimeUtils.dayLabel(dateString),
                 dayNumber = DateTimeUtils.dayNumber(dateString),
                 isSelected = false,
-                isBrowsable = BookingWindowUtils.isDateBrowsable(daysUntil, isMember),
+                isBrowsable = BookingWindowUtils.isDateBrowsable(daysUntil, tier),
             )
         }
         _uiState.update { it.copy(dates = dates) }
@@ -73,25 +76,29 @@ class SlotsViewModel @Inject constructor(
     private fun observeSlots(date: String) {
         slotObserverJob?.cancel()
         slotObserverJob = viewModelScope.launch {
-            val isMember = userProfile?.isMember == true
+            val tier = userProfile?.membershipTier ?: MembershipTier.NONE
             val currentUid = userProfile?.uid
             val daysUntil = DateTimeUtils.daysUntil(date)
 
             slotRepository.observeSlots(facilityId, date).collect { slots ->
                 val selectedHour = _uiState.value.selectedSlot?.hour
+                val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                 val displaySlots = slots.map { slot ->
                     val isMyBooking = slot.bookedBy != null && slot.bookedBy == currentUid
                     val effective = BookingWindowUtils.effectiveStatus(
                         daysUntilSlot = daysUntil,
                         serverStatus = slot.status,
-                        isMember = isMember,
+                        membershipTier = tier,
                         isMyBooking = isMyBooking,
+                        slotHour = slot.hour,
+                        currentHour = currentHour,
                     )
                     DisplaySlot(
                         hour = slot.hour,
                         timeLabel = slot.timeLabel,
                         effectiveStatus = effective,
                         isSelected = slot.hour == selectedHour,
+                        isFreeMembership = slot.isFreeMembership,
                     )
                 }
                 _uiState.update { it.copy(slots = displaySlots) }
@@ -119,6 +126,10 @@ class SlotsViewModel @Inject constructor(
             _uiState.update { it.copy(isCancelling = true, error = null) }
             slotRepository.cancelBooking(docId)
                 .onSuccess {
+                    if (slot.isFreeMembership) {
+                        runCatching { userRepository.decrementSessionsUsed(isCricket = facilityId == Facility.CRICKET_NET.id) }
+                        userProfile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
+                    }
                     _uiState.update {
                         it.copy(
                             isCancelling = false,
@@ -161,7 +172,12 @@ class SlotsViewModel @Inject constructor(
 
     fun isFreeSession(): Boolean {
         val profile = userProfile ?: return false
-        return profile.isMember && profile.sessionsRemaining > 0
+        if (!profile.isMember) return false
+        return if (facilityId == Facility.CRICKET_NET.id) {
+            profile.cricketSessionsRemaining > 0
+        } else {
+            profile.sessionsRemaining > 0
+        }
     }
 
     fun bookSelectedSlotFree() {
@@ -169,9 +185,9 @@ class SlotsViewModel @Inject constructor(
         val dateItem = _uiState.value.dates.find { it.isSelected } ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isBookingFree = true, error = null) }
-            slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour)
+            slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour, isFreeMembership = true)
                 .onSuccess {
-                    runCatching { userRepository.incrementSessionsUsed() }
+                    runCatching { userRepository.incrementSessionsUsed(isCricket = facilityId == Facility.CRICKET_NET.id) }
                     userProfile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
                     _uiState.update {
                         it.copy(

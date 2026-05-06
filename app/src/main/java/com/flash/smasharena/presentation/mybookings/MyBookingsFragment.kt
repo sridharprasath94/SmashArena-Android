@@ -77,6 +77,14 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
                     adapter.cancellingDocId = state.cancellingDocId
                     adapter.submitList(state.bookings)
 
+                    if (state.cancelSuccess) {
+                        viewModel.onCancelSuccessHandled()
+                        runCatching {
+                            findNavController().getBackStackEntry(R.id.homeFragment)
+                                .savedStateHandle["session_updated"] = true
+                        }
+                    }
+
                     state.error?.let { error ->
                         viewModel.onErrorShown()
                         Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()

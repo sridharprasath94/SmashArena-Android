@@ -90,7 +90,7 @@
                         android:paddingVertical="10dp"
                         android:paddingHorizontal="8dp"
                         android:text="@string/perk_early_access"
-                        android:textColor="@color/accent_green"
+                        android:textColor="@color/accent_gold"
                         android:textSize="11sp"
                         android:gravity="center"
                         android:lineSpacingMultiplier="1.3" />
@@ -112,7 +112,7 @@
                         android:paddingVertical="10dp"
                         android:paddingHorizontal="8dp"
                         android:text="@string/perk_cricket_access"
-                        android:textColor="@color/accent_green"
+                        android:textColor="@color/accent_gold"
                         android:textSize="11sp"
                         android:gravity="center"
                         android:lineSpacingMultiplier="1.3" />
@@ -134,7 +134,7 @@
                         android:paddingVertical="10dp"
                         android:paddingHorizontal="8dp"
                         android:text="@string/perk_save_more"
-                        android:textColor="@color/accent_green"
+                        android:textColor="@color/accent_gold"
                         android:textSize="11sp"
                         android:gravity="center"
                         android:lineSpacingMultiplier="1.3" />

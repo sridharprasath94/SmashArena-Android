@@ -9,11 +9,13 @@ data class BookingItem(
     val date: String,
     val displayDate: String,
     val timeLabel: String,
+    val isFreeMembership: Boolean = false,
 )
 
 data class MyBookingsUiState(
     val bookings: List<BookingItem> = emptyList(),
     val isLoading: Boolean = true,
     val cancellingDocId: String? = null,
+    val cancelSuccess: Boolean = false,
     val error: AppError? = null,
 )

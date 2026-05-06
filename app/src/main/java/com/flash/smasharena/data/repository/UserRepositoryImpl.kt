@@ -37,6 +37,7 @@ class UserRepositoryImpl @Inject constructor(
                             "membershipExpiry" to null,
                             "sessionsUsed" to 0,
                             "sessionsQuota" to 0,
+                            "cricketSessionsUsed" to 0,
                         )
                         docRef.set(defaults)
                             .addOnSuccessListener {
@@ -70,7 +71,9 @@ class UserRepositoryImpl @Inject constructor(
                     "membershipTier" to tier.name,
                     "sessionsQuota" to tier.sessionsPerMonth,
                     "sessionsUsed" to 0,
+                    "cricketSessionsUsed" to 0,
                     "membershipExpiry" to expiry,
+                    "membershipCancelled" to false,
                 )
             )
                 .addOnSuccessListener { cont.resume(Unit) }
@@ -89,6 +92,7 @@ class UserRepositoryImpl @Inject constructor(
                     "membershipTier" to newTier.name,
                     "sessionsQuota" to newTier.sessionsPerMonth,
                     "membershipExpiry" to expiry,
+                    "membershipCancelled" to false,
                 )
             )
                 .addOnSuccessListener { cont.resume(Unit) }
@@ -100,26 +104,37 @@ class UserRepositoryImpl @Inject constructor(
         if (!networkMonitor.isConnected()) throw AppError.NoInternet
         val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
         val docRef = firestore.collection("users").document(uid)
+        // Keep tier/expiry/sessions intact so remaining benefits stay accessible until cycle ends.
+        // Only set the cancelled flag to stop renewal.
         suspendCancellableCoroutine { cont ->
-            docRef.update(
-                mapOf(
-                    "membershipTier" to MembershipTier.NONE.name,
-                    "sessionsQuota" to 0,
-                    "sessionsUsed" to 0,
-                    "membershipExpiry" to null,
-                )
-            )
+            docRef.update(mapOf("membershipCancelled" to true))
                 .addOnSuccessListener { cont.resume(Unit) }
                 .addOnFailureListener { cont.resumeWithException(it) }
         }
     }
 
-    override suspend fun incrementSessionsUsed() {
+    override suspend fun incrementSessionsUsed(isCricket: Boolean) {
         if (!networkMonitor.isConnected()) throw AppError.NoInternet
         val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
+        val field = if (isCricket) "cricketSessionsUsed" else "sessionsUsed"
         val docRef = firestore.collection("users").document(uid)
         suspendCancellableCoroutine { cont ->
-            docRef.update("sessionsUsed", FieldValue.increment(1))
+            docRef.update(field, FieldValue.increment(1))
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resumeWithException(it) }
+        }
+    }
+
+    override suspend fun decrementSessionsUsed(isCricket: Boolean) {
+        if (!networkMonitor.isConnected()) throw AppError.NoInternet
+        val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
+        val field = if (isCricket) "cricketSessionsUsed" else "sessionsUsed"
+        val docRef = firestore.collection("users").document(uid)
+        suspendCancellableCoroutine { cont ->
+            firestore.runTransaction { tx ->
+                val current = tx.get(docRef).getLong(field)?.toInt() ?: 0
+                tx.update(docRef, field, (current - 1).coerceAtLeast(0))
+            }
                 .addOnSuccessListener { cont.resume(Unit) }
                 .addOnFailureListener { cont.resumeWithException(it) }
         }
@@ -138,6 +153,8 @@ class UserRepositoryImpl @Inject constructor(
             membershipExpiry = getLong("membershipExpiry"),
             sessionsUsed = getLong("sessionsUsed")?.toInt() ?: 0,
             sessionsQuota = getLong("sessionsQuota")?.toInt() ?: 0,
+            cricketSessionsUsed = getLong("cricketSessionsUsed")?.toInt() ?: 0,
+            membershipCancelled = getBoolean("membershipCancelled") ?: false,
         )
     }
 }

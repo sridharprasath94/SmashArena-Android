@@ -21,21 +21,29 @@ class SlotAdapter(
             val ctx = binding.root.context
 
             binding.tvTime.text = String.format("%02d:00", item.hour)
-            binding.tvStatus.text = when (item.effectiveStatus) {
-                SlotStatus.AVAILABLE   -> ctx.getString(R.string.slot_available)
-                SlotStatus.BOOKED      -> ctx.getString(R.string.slot_booked)
-                SlotStatus.MEMBER_HOLD -> ctx.getString(R.string.slot_member_hold)
-                SlotStatus.LOCKED      -> ctx.getString(R.string.slot_locked)
-                SlotStatus.MY_BOOKING  -> ctx.getString(R.string.slot_my_booking)
+            binding.tvStatus.text = when {
+                item.effectiveStatus == SlotStatus.MY_BOOKING && item.isFreeMembership ->
+                    ctx.getString(R.string.slot_membership_booking)
+                else -> when (item.effectiveStatus) {
+                    SlotStatus.AVAILABLE   -> ctx.getString(R.string.slot_available)
+                    SlotStatus.BOOKED      -> ctx.getString(R.string.slot_booked)
+                    SlotStatus.MEMBER_HOLD -> ctx.getString(R.string.slot_member_hold)
+                    SlotStatus.LOCKED      -> ctx.getString(R.string.slot_locked)
+                    SlotStatus.MY_BOOKING  -> ctx.getString(R.string.slot_my_booking)
+                }
             }
 
             val bgColor = ContextCompat.getColor(
-                ctx, when (item.effectiveStatus) {
-                    SlotStatus.AVAILABLE   -> if (item.isSelected) R.color.slot_selected else R.color.slot_available
-                    SlotStatus.BOOKED      -> R.color.slot_booked
-                    SlotStatus.MEMBER_HOLD -> R.color.slot_member_hold
-                    SlotStatus.LOCKED      -> R.color.slot_locked
-                    SlotStatus.MY_BOOKING  -> if (item.isSelected) R.color.slot_my_booking_selected else R.color.slot_my_booking
+                ctx, when {
+                    item.effectiveStatus == SlotStatus.MY_BOOKING && item.isFreeMembership ->
+                        if (item.isSelected) R.color.slot_membership_booking_selected else R.color.slot_membership_booking
+                    else -> when (item.effectiveStatus) {
+                        SlotStatus.AVAILABLE   -> if (item.isSelected) R.color.slot_selected else R.color.slot_available
+                        SlotStatus.BOOKED      -> R.color.slot_booked
+                        SlotStatus.MEMBER_HOLD -> R.color.slot_member_hold
+                        SlotStatus.LOCKED      -> R.color.slot_locked
+                        SlotStatus.MY_BOOKING  -> if (item.isSelected) R.color.slot_my_booking_selected else R.color.slot_my_booking
+                    }
                 }
             )
             binding.root.setCardBackgroundColor(bgColor)

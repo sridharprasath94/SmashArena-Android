@@ -87,7 +87,7 @@ class SlotRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun bookSlot(facilityId: String, date: String, hour: Int): Result<Unit> =
+    override suspend fun bookSlot(facilityId: String, date: String, hour: Int, isFreeMembership: Boolean): Result<Unit> =
         runCatching {
             if (!networkMonitor.isConnected()) throw AppError.NoInternet
             val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
@@ -108,6 +108,7 @@ class SlotRepositoryImpl @Inject constructor(
                             "status" to "booked",
                             "bookedBy" to uid,
                             "bookedAt" to com.google.firebase.Timestamp.now(),
+                            "isFreeMembership" to isFreeMembership,
                         )
                     )
                 }
@@ -125,6 +126,6 @@ class SlotRepositoryImpl @Inject constructor(
             "member_hold" -> SlotStatus.MEMBER_HOLD
             else          -> SlotStatus.AVAILABLE
         }
-        return Slot(facilityId, date, hour, status, getString("bookedBy"))
+        return Slot(facilityId, date, hour, status, getString("bookedBy"), getBoolean("isFreeMembership") == true)
     }
 }

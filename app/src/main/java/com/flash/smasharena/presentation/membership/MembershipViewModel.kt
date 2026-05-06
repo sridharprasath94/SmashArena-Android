@@ -26,13 +26,14 @@ class MembershipViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            currentTier = runCatching { userRepository.getOrCreateProfile() }
-                .getOrNull()?.membershipTier ?: MembershipTier.NONE
+            val profile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
+            currentTier = profile?.membershipTier ?: MembershipTier.NONE
+            val alreadyCancelled = profile?.membershipCancelled == true
             _uiState.update {
                 it.copy(
                     plans = buildPlans(),
                     currentTier = currentTier,
-                    showCancelButton = currentTier != MembershipTier.NONE,
+                    showCancelButton = currentTier != MembershipTier.NONE && !alreadyCancelled,
                     isLoading = false,
                 )
             }
