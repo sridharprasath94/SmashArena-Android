@@ -29,14 +29,23 @@ class PlanAdapter(
             binding.tvCricketSessions.text =
                 ctx.getString(R.string.plan_cricket_sessions, item.cricketSessions)
 
-            // Card border: green only when selected or current plan, otherwise default outline
-            val (strokeColor, strokeWidth) = if (item.isSelected || item.isCurrentPlan) {
+            // Card border + premium elevation/scale/background for selected or current plan
+            val active = item.isSelected || item.isCurrentPlan
+            val (strokeColor, strokeWidth) = if (active) {
                 ContextCompat.getColor(ctx, R.color.accent_green) to 2
             } else {
                 ContextCompat.getColor(ctx, R.color.outline) to 1
             }
             binding.root.strokeColor = strokeColor
             binding.root.strokeWidth = strokeWidth
+
+            val dp = ctx.resources.displayMetrics.density
+            binding.root.cardElevation = if (active) 8f * dp else 0f
+            binding.root.animate().scaleX(if (active) 1.03f else 1f)
+                .scaleY(if (active) 1.03f else 1f).setDuration(200).start()
+            binding.root.setCardBackgroundColor(
+                ContextCompat.getColor(ctx, if (active) R.color.surface_selected else R.color.surface)
+            )
 
             // Whole card is tappable for selection
             binding.root.setOnClickListener { onCardTapped(item) }

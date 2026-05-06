@@ -17,6 +17,10 @@ import com.flash.smasharena.presentation.slots.ConfirmationDialog
 import dev.androidbroadcast.vbpd.viewBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @AndroidEntryPoint
 class HomeFragment : Fragment(R.layout.fragment_home) {
@@ -112,7 +116,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     state.userProfile?.let { profile ->
                         binding.membershipBanner.tvMembershipStatus.text = when (profile.membershipTier) {
                             MembershipTier.NONE -> getString(R.string.membership_banner_none)
-                            else -> "${profile.membershipTier.displayName} · ${profile.sessionsRemaining} sessions left · View plans →"
+                            else -> {
+                                val tier = profile.membershipTier
+                                val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
+                                val validity = profile.membershipExpiry?.let { expiry ->
+                                    val startCal = Calendar.getInstance().apply { timeInMillis = expiry }
+                                    startCal.add(Calendar.DAY_OF_MONTH, -30)
+                                    "  ·  ${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}"
+                                } ?: ""
+                                "${tier.displayName}  ·  🏸 ${tier.sessionsPerMonth}  🏏 ${tier.cricketSessionsPerMonth}$validity"
+                            }
                         }
                     }
 
