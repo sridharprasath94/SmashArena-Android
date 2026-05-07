@@ -35,6 +35,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         val docId = args.getString(ARG_DOC_ID, "")
 
         val isDestructive = type == Type.CANCEL || type == Type.LOGOUT || type == Type.INFO || type == Type.CANCEL_MEMBERSHIP
+        val customTitle = args.getString(ARG_TITLE)
 
         val accentColor = ContextCompat.getColor(
             requireContext(),
@@ -57,17 +58,20 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.LOGOUT -> R.drawable.ic_logout
                 Type.INFO -> R.drawable.ic_close
                 Type.CANCEL_MEMBERSHIP -> R.drawable.ic_close
+                Type.SELECT_MEMBERSHIP, Type.SCHEDULE_MEMBERSHIP -> R.drawable.ic_check
             }
         )
         binding.ivIcon.imageTintList = ColorStateList.valueOf(accentColor)
 
-        binding.tvTitle.text = getString(
+        binding.tvTitle.text = customTitle ?: getString(
             when (type) {
                 Type.BOOK -> R.string.dialog_confirm_book_title
                 Type.CANCEL -> R.string.dialog_confirm_cancel_title
                 Type.LOGOUT -> R.string.dialog_confirm_logout_title
                 Type.INFO -> R.string.dialog_consecutive_limit_title
                 Type.CANCEL_MEMBERSHIP -> R.string.dialog_confirm_cancel_membership_title
+                Type.SELECT_MEMBERSHIP -> R.string.dialog_confirm_membership_title
+                Type.SCHEDULE_MEMBERSHIP -> R.string.dialog_confirm_membership_title
             }
         )
         binding.tvSubtitle.text = subtitle
@@ -81,6 +85,8 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 Type.LOGOUT -> R.string.dialog_logout_confirm
                 Type.INFO -> R.string.dialog_got_it
                 Type.CANCEL_MEMBERSHIP -> R.string.dialog_cancel_membership_confirm
+                Type.SELECT_MEMBERSHIP -> R.string.dialog_select_membership_confirm
+                Type.SCHEDULE_MEMBERSHIP -> R.string.dialog_schedule_membership_confirm
             }
         )
         binding.btnConfirm.backgroundTintList = ColorStateList.valueOf(accentColor)
@@ -98,7 +104,8 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         binding.btnDismiss.isVisible = type != Type.INFO
         binding.btnDismiss.text = getString(
             when (type) {
-                Type.BOOK, Type.LOGOUT, Type.INFO -> R.string.dialog_cancel
+                Type.BOOK, Type.LOGOUT, Type.INFO,
+                Type.SELECT_MEMBERSHIP, Type.SCHEDULE_MEMBERSHIP -> R.string.dialog_cancel
                 Type.CANCEL, Type.CANCEL_MEMBERSHIP -> R.string.dialog_keep
             }
         )
@@ -128,7 +135,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         }, 80)
     }
 
-    enum class Type { BOOK, CANCEL, LOGOUT, INFO, CANCEL_MEMBERSHIP }
+    enum class Type { BOOK, CANCEL, LOGOUT, INFO, CANCEL_MEMBERSHIP, SELECT_MEMBERSHIP, SCHEDULE_MEMBERSHIP }
 
     companion object {
         const val REQUEST_BOOK = "confirm_book"
@@ -137,6 +144,8 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         const val REQUEST_CANCEL_BOOKING = "confirm_cancel_booking"
         const val REQUEST_LOGOUT = "confirm_logout"
         const val REQUEST_CANCEL_MEMBERSHIP = "confirm_cancel_membership"
+        const val REQUEST_SELECT_MEMBERSHIP = "confirm_select_membership"
+        const val REQUEST_SCHEDULE_MEMBERSHIP = "confirm_schedule_membership"
         const val KEY_DOC_ID = "docId"
 
         private const val ARG_TYPE = "type"
@@ -144,6 +153,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         private const val ARG_DETAIL = "detail"
         private const val ARG_REQUEST_KEY = "requestKey"
         private const val ARG_DOC_ID = "docId"
+        private const val ARG_TITLE = "title"
 
         fun book(facilityName: String, dateLabel: String, timeLabel: String) =
             build(Type.BOOK, REQUEST_BOOK, facilityName, "$dateLabel · $timeLabel")
@@ -166,12 +176,25 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         fun limitReached(message: String) =
             build(Type.INFO, "", message, null)
 
+        fun selectMembership(message: String) =
+            build(Type.SELECT_MEMBERSHIP, REQUEST_SELECT_MEMBERSHIP, message, null)
+
+        fun scheduleMembership(tierDisplayName: String) =
+            build(
+                type = Type.SCHEDULE_MEMBERSHIP,
+                requestKey = REQUEST_SCHEDULE_MEMBERSHIP,
+                subtitle = "$tierDisplayName will activate at the start of your next billing cycle. No charge now.",
+                detail = null,
+                title = "Schedule $tierDisplayName?",
+            )
+
         private fun build(
             type: Type,
             requestKey: String,
             subtitle: String,
             detail: String?,
             docId: String = "",
+            title: String? = null,
         ) = ConfirmationDialog().apply {
             arguments = bundleOf(
                 ARG_TYPE to type.name,
@@ -179,6 +202,7 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
                 ARG_DETAIL to detail,
                 ARG_REQUEST_KEY to requestKey,
                 ARG_DOC_ID to docId,
+                ARG_TITLE to title,
             )
         }
     }

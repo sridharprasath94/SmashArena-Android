@@ -57,24 +57,29 @@ class MembershipViewModel @Inject constructor(
 
     fun onGetStarted(item: PlanItem) {
         val isDowngrade = item.tier.ordinal < currentTier.ordinal
-        if (isCancelled) {
-            onScheduleNextCycle(item.tier)
-            return
+        val action = if (isCancelled || isDowngrade) {
+            MembershipPendingAction.SchedulePlan(item.tier)
+        } else {
+            val isUpgrade = item.upgradePrice != null
+            val amount = item.upgradePrice ?: item.tier.priceRupees
+            MembershipPendingAction.SelectPlan(item, amount, isUpgrade)
         }
-        if (isDowngrade) {
-            onScheduleNextCycle(item.tier)
-            return
-        }
-        val isUpgrade = item.upgradePrice != null
-        val amount = item.upgradePrice ?: item.tier.priceRupees
-        _uiState.update {
-            it.copy(
-                navigateToPayment = NavigateToMembershipPayment(item.tier, amount, isUpgrade)
-            )
-        }
+        _uiState.update { it.copy(pendingAction = action) }
     }
 
     fun onScheduleNextCycle(tier: MembershipTier) {
+        _uiState.update { it.copy(pendingAction = MembershipPendingAction.SchedulePlan(tier)) }
+    }
+
+    fun onPendingActionConsumed() = _uiState.update { it.copy(pendingAction = null) }
+
+    fun confirmSelectPlan(item: PlanItem, amount: Int, isUpgrade: Boolean) {
+        _uiState.update {
+            it.copy(navigateToPayment = NavigateToMembershipPayment(item.tier, amount, isUpgrade))
+        }
+    }
+
+    fun confirmScheduleNextCycle(tier: MembershipTier) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             runCatching { userRepository.scheduleNextCycleMembership(tier) }

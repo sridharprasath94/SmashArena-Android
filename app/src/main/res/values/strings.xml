@@ -122,6 +122,9 @@
     <string name="dialog_confirm_cancel_membership_title">Cancel Membership?</string>
     <string name="dialog_cancel_membership_detail">You can continue using remaining free sessions until your current cycle ends. Benefits stop from next month.</string>
     <string name="dialog_cancel_membership_confirm">Cancel Plan</string>
+    <string name="dialog_confirm_membership_title">Confirm Membership?</string>
+    <string name="dialog_select_membership_confirm">Continue to Payment</string>
+    <string name="dialog_schedule_membership_confirm">Schedule</string>
     <string name="membership_purchase_description">Monthly membership · %1$d sessions/month</string>
     <string name="membership_upgrade_description">Upgrade · %1$d sessions/month</string>
     <string name="membership_schedule_description">Scheduled for next cycle · %1$d sessions/month</string>
