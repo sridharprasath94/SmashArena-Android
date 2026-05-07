@@ -8,6 +8,7 @@ import com.flash.smasharena.domain.repository.UserRepository
 import com.flash.smasharena.util.DateTimeUtils
 import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Calendar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,24 +28,47 @@ class MyBookingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             slotRepository.getMyBookings().collect { slots ->
+                val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                 val items = slots.map { slot ->
+                    val daysUntil = DateTimeUtils.daysUntil(slot.date)
+                    val isExpired = daysUntil < 0 || (daysUntil == 0 && slot.hour <= currentHour)
                     BookingItem(
                         docId = slot.docId,
                         facilityId = slot.facilityId,
                         facilityDisplayName = facilityDisplayName(slot.facilityId),
                         date = slot.date,
                         displayDate = DateTimeUtils.displayDate(slot.date),
+                        hour = slot.hour,
                         timeLabel = slot.timeLabel,
                         isFreeMembership = slot.isFreeMembership,
+                        isExpired = isExpired,
                     )
                 }
-                _uiState.update { it.copy(bookings = items, isLoading = false) }
+                _uiState.update { it.copy(listItems = buildSectionedList(items), isLoading = false) }
+            }
+        }
+    }
+
+    private fun buildSectionedList(items: List<BookingItem>): List<BookingListItem> {
+        val upcoming = items.filter { !it.isExpired }.sortedWith(compareBy({ it.date }, { it.hour }))
+        val past = items.filter { it.isExpired }.sortedWith(compareByDescending<BookingItem> { it.date }.thenByDescending { it.hour })
+        return buildList {
+            if (upcoming.isNotEmpty()) {
+                add(BookingListItem.Header("Upcoming"))
+                upcoming.forEach { add(BookingListItem.Booking(it)) }
+            }
+            if (past.isNotEmpty()) {
+                add(BookingListItem.Header("Past"))
+                past.forEach { add(BookingListItem.Booking(it)) }
             }
         }
     }
 
     fun cancelBooking(docId: String) {
-        val item = _uiState.value.bookings.find { it.docId == docId }
+        val item = _uiState.value.listItems
+            .filterIsInstance<BookingListItem.Booking>()
+            .map { it.item }
+            .find { it.docId == docId }
         viewModelScope.launch {
             _uiState.update { it.copy(cancellingDocId = docId) }
             slotRepository.cancelBooking(docId)
