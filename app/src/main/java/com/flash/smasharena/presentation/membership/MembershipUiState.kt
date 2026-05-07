@@ -12,12 +12,17 @@ data class PlanItem(
     val isRecommended: Boolean,
     val isSelected: Boolean,
     val upgradePrice: Int? = null,
+    val isCancelled: Boolean = false,
+    val expiryText: String? = null,
+    val isScheduledNext: Boolean = false,
+    val scheduledCta: String? = null,
 )
 
 data class NavigateToMembershipPayment(
     val tier: MembershipTier,
     val amount: Int,
     val isUpgrade: Boolean,
+    val isScheduled: Boolean = false,
 )
 
 data class MembershipUiState(

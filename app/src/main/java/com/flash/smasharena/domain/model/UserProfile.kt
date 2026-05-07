@@ -6,12 +6,13 @@ data class UserProfile(
     val email: String,
     val membershipTier: MembershipTier,
     val membershipExpiry: Long?,
-    val sessionsUsed: Int,
+    val badmintonSessionsUsed: Int,
     val sessionsQuota: Int,
     val cricketSessionsUsed: Int = 0,
     val membershipCancelled: Boolean = false,
+    val scheduledNextTier: MembershipTier? = null,
 ) {
-    val sessionsRemaining: Int get() = (sessionsQuota - sessionsUsed).coerceAtLeast(0)
+    val sessionsRemaining: Int get() = (sessionsQuota - badmintonSessionsUsed).coerceAtLeast(0)
     val cricketSessionsRemaining: Int
         get() = (membershipTier.cricketSessionsPerMonth - cricketSessionsUsed).coerceAtLeast(0)
     val isMember: Boolean get() = membershipTier != MembershipTier.NONE

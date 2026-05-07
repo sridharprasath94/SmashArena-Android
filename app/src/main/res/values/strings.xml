@@ -108,13 +108,22 @@
     <string name="plan_feature_early_access">✓  Early booking window (5–7 days ahead)</string>
     <string name="plan_feature_priority">✓  Priority slot selection for both courts</string>
     <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
-    <string name="plan_get_started">Get Started</string>
+    <string name="plan_get_started">Choose Plan</string>
     <string name="plan_current">Current Plan</string>
-    <string name="plan_upgrade_btn">Upgrade · ₹%1$d</string>
+    <string name="plan_upgrade_btn">Upgrade</string>
+    <string name="plan_upgrade_next_cycle_btn">Upgrade Next Cycle</string>
+    <string name="membership_auto_renew_off">Auto-renew off</string>
+    <string name="membership_active_until">Active until %1$s</string>
+    <string name="plan_expires">Expires %1$s</string>
+    <string name="membership_renewing_next_cycle">Renewing %1$s next cycle</string>
+    <string name="membership_upgrading_next_cycle">Upgrading to %1$s next cycle</string>
+    <string name="plan_next_cycle">Scheduled Next Cycle</string>
     <string name="membership_cancel_btn">Cancel Membership</string>
     <string name="dialog_confirm_cancel_membership_title">Cancel Membership?</string>
     <string name="dialog_cancel_membership_detail">You can continue using remaining free sessions until your current cycle ends. Benefits stop from next month.</string>
     <string name="dialog_cancel_membership_confirm">Cancel Plan</string>
     <string name="membership_purchase_description">Monthly membership · %1$d sessions/month</string>
     <string name="membership_upgrade_description">Upgrade · %1$d sessions/month</string>
+    <string name="membership_schedule_description">Scheduled for next cycle · %1$d sessions/month</string>
+    <string name="membership_downgrading_next_cycle">Downgrading to %1$s next cycle</string>
 </resources>

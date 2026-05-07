@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -25,36 +26,21 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        loadProfile()
-    }
-
-    private fun loadProfile() {
+        // One-time fetch to trigger expiry rollover logic before streaming
+        viewModelScope.launch { runCatching { userRepository.getOrCreateProfile() } }
         viewModelScope.launch {
-            runCatching { userRepository.getOrCreateProfile() }
-                .onSuccess { profile ->
+            userRepository.observeProfile()
+                .catch { _uiState.update { it.copy(isLoading = false) } }
+                .collect { profile ->
                     _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            userProfile = profile,
-                            lastSyncedAt = formattedNow(),
-                        )
+                        it.copy(isLoading = false, userProfile = profile, lastSyncedAt = formattedNow())
                     }
-                }
-                .onFailure {
-                    _uiState.update { it.copy(isLoading = false) }
                 }
         }
     }
 
     fun refreshProfile() {
-        viewModelScope.launch {
-            runCatching { userRepository.getOrCreateProfile() }
-                .onSuccess { profile ->
-                    _uiState.update {
-                        it.copy(userProfile = profile, lastSyncedAt = formattedNow())
-                    }
-                }
-        }
+        viewModelScope.launch { runCatching { userRepository.getOrCreateProfile() } }
     }
 
     fun signOut() {

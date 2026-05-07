@@ -48,9 +48,17 @@ class SlotAdapter(
             )
             binding.root.setCardBackgroundColor(bgColor)
 
-            val strokeWidth = if (item.isSelected) 2 else 0
-            binding.root.strokeWidth = strokeWidth
-            binding.root.strokeColor = ContextCompat.getColor(ctx, R.color.text_primary)
+            // MEMBER_HOLD slots: gold text + gold border to signal premium-exclusive access
+            if (item.effectiveStatus == SlotStatus.MEMBER_HOLD) {
+                binding.tvStatus.setTextColor(ContextCompat.getColor(ctx, R.color.accent_gold))
+                binding.root.strokeWidth = 1
+                binding.root.strokeColor = ContextCompat.getColor(ctx, R.color.accent_gold)
+            } else {
+                binding.tvStatus.setTextColor(ContextCompat.getColor(ctx, R.color.text_secondary))
+                val strokeWidth = if (item.isSelected) 2 else 0
+                binding.root.strokeWidth = strokeWidth
+                binding.root.strokeColor = ContextCompat.getColor(ctx, R.color.text_primary)
+            }
 
             val isClickable = item.effectiveStatus == SlotStatus.AVAILABLE || item.effectiveStatus == SlotStatus.MY_BOOKING
             binding.root.isClickable = isClickable

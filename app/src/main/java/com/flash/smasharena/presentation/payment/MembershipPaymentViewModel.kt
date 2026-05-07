@@ -23,6 +23,7 @@ class MembershipPaymentViewModel @Inject constructor(
 
     private val tierName: String = checkNotNull(savedStateHandle["tierName"])
     private val isUpgrade: Boolean = checkNotNull(savedStateHandle["isUpgrade"])
+    private val isScheduled: Boolean = savedStateHandle["isScheduled"] ?: false
     private val tier: MembershipTier = MembershipTier.valueOf(tierName)
 
     private val _uiState = MutableStateFlow(PaymentUiState())
@@ -37,8 +38,11 @@ class MembershipPaymentViewModel @Inject constructor(
             _uiState.update { it.copy(isProcessing = true, error = null) }
             delay(1500L)
             runCatching {
-                if (isUpgrade) userRepository.upgradeMembership(tier)
-                else userRepository.purchaseMembership(tier)
+                when {
+                    isScheduled -> userRepository.scheduleNextCycleMembership(tier)
+                    isUpgrade   -> userRepository.upgradeMembership(tier)
+                    else        -> userRepository.purchaseMembership(tier)
+                }
             }
                 .onSuccess { _uiState.update { it.copy(isProcessing = false, paymentSuccess = true) } }
                 .onFailure { e -> _uiState.update { it.copy(isProcessing = false, error = e.toAppError()) } }

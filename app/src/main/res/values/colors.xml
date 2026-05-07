@@ -3,6 +3,7 @@
     <color name="background">#1A1A1A</color>
     <color name="surface">#242424</color>
     <color name="surface_selected">#2A2A2A</color>
+    <color name="surface_highlighted">#2C2618</color>
     <color name="accent_green">#B5D86C</color>
     <color name="accent_green_dark">#8FAF3E</color>
     <color name="accent_gold">#D4A849</color>

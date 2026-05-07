@@ -9,11 +9,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.core.content.ContextCompat
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentHomeBinding
 import com.flash.smasharena.domain.model.Facility
 import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.presentation.slots.ConfirmationDialog
+import com.google.android.material.card.MaterialCardView
 import dev.androidbroadcast.vbpd.viewBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -133,20 +135,47 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         binding.membershipBanner.layoutNoMembership.isVisible = !isActiveMember
                         binding.membershipBanner.layoutMembershipDetail.isVisible = isActiveMember
 
+                        // Premium gold border when member is active
+                        (binding.membershipBanner.root as? MaterialCardView)?.let { card ->
+                            card.strokeColor = ContextCompat.getColor(
+                                requireContext(),
+                                if (isActiveMember) R.color.accent_gold else R.color.outline,
+                            )
+                        }
+
                         if (isActiveMember) {
                             binding.membershipBanner.tvPlanName.text = tier.displayName
-                            binding.membershipBanner.tvCancelledBadge.isVisible = profile.membershipCancelled
+                            val scheduled = profile.scheduledNextTier
+                            binding.membershipBanner.tvCancelledBadge.isVisible =
+                                profile.membershipCancelled && scheduled == null
                             binding.membershipBanner.tvBadmintonRemaining.text =
                                 "🏸 ${profile.sessionsRemaining} / ${tier.sessionsPerMonth}"
                             binding.membershipBanner.tvCricketRemaining.text =
                                 "🏏 ${profile.cricketSessionsRemaining} / ${tier.cricketSessionsPerMonth}"
                             val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
                             binding.membershipBanner.tvValidity.text = profile.membershipExpiry?.let { expiry ->
-                                val startCal = Calendar.getInstance().apply { timeInMillis = expiry }
-                                startCal.add(Calendar.DAY_OF_MONTH, -30)
-                                val suffix = if (profile.membershipCancelled) " · Expires" else ""
-                                "${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}$suffix"
+                                if (profile.membershipCancelled && profile.scheduledNextTier == null) {
+                                    getString(R.string.membership_active_until, sdf.format(Date(expiry)))
+                                } else {
+                                    val startCal = Calendar.getInstance().apply { timeInMillis = expiry }
+                                    startCal.add(Calendar.DAY_OF_MONTH, -30)
+                                    "${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}"
+                                }
                             } ?: ""
+
+                            val nextCycleText = when {
+                                scheduled != null && scheduled.ordinal > tier.ordinal ->
+                                    getString(R.string.membership_upgrading_next_cycle, scheduled.displayName)
+                                scheduled != null && scheduled.ordinal < tier.ordinal ->
+                                    getString(R.string.membership_downgrading_next_cycle, scheduled.displayName)
+                                scheduled != null ->
+                                    getString(R.string.membership_renewing_next_cycle, scheduled.displayName)
+                                !profile.membershipCancelled ->
+                                    getString(R.string.membership_renewing_next_cycle, tier.displayName)
+                                else -> null
+                            }
+                            binding.membershipBanner.tvNextCycle.isVisible = nextCycleText != null
+                            binding.membershipBanner.tvNextCycle.text = nextCycleText ?: ""
                         }
 
                         // Facility card session hints
