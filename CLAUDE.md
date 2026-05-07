@@ -23,7 +23,7 @@ Pricing: Badminton ₹300/₹200/₹300 | Cricket ₹400/₹300/₹400 (early/mi
 
 **Membership:** RALLY ₹1k (8+2 slots), SMASH ₹1.5k (12+3), ACE ₹2k (16+4) — 30-day expiry; upgrade pays diff only; downgrade/cancel = schedule next cycle only (no payment).
 
-**Membership flow:** `onGetStarted` — cancelled or downgrade → `scheduleNextCycleMembership(tier)` directly; upgrade → navigate to payment. `cancelMembership()` also clears `scheduledNextTier` in Firestore. `computeShowCancelButton()` = `currentTier != NONE && (!isCancelled || scheduledNextTier != null)`.
+**Membership flow:** `onGetStarted` / `onScheduleNextCycle` set `MembershipPendingAction` in UiState; fragment observes, calls `onPendingActionConsumed()` to clear, then shows `ConfirmationDialog`. On confirm: `confirmSelectPlan()` (payment) or `confirmScheduleNextCycle()` (schedule). `cancelMembership()` also clears `scheduledNextTier` in Firestore. `computeShowCancelButton()` = `currentTier != NONE && (!isCancelled || scheduledNextTier != null)`.
 
 **Firestore fields:** `/users/{uid}` — `badmintonSessionsUsed` (renamed from `sessionsUsed`), `scheduledNextTier`, `membershipCancelled`, `membershipExpiry`.
 
