@@ -49,9 +49,10 @@
         android:id="@+id/membershipPaymentFragment"
         android:name="com.flash.smasharena.presentation.payment.MembershipPaymentFragment"
         android:label="Membership Payment">
-        <argument android:name="tierName"   app:argType="string" />
+        <argument android:name="tierName"    app:argType="string" />
         <argument android:name="amount"     app:argType="integer" />
         <argument android:name="isUpgrade"  app:argType="boolean" />
+        <argument android:name="isScheduled" app:argType="boolean" android:defaultValue="false" />
     </fragment>
 
     <fragment

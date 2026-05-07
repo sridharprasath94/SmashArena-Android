@@ -3,6 +3,7 @@
     <color name="background">#1A1A1A</color>
     <color name="surface">#242424</color>
     <color name="surface_selected">#2A2A2A</color>
+    <color name="surface_highlighted">#2C2618</color>
     <color name="accent_green">#B5D86C</color>
     <color name="accent_green_dark">#8FAF3E</color>
     <color name="accent_gold">#D4A849</color>
@@ -19,8 +20,8 @@
     <color name="slot_locked">#1E1E1E</color>
     <color name="slot_my_booking">#0D2744</color>
     <color name="slot_my_booking_selected">#1A4A80</color>
-    <color name="slot_membership_booking">#0A2A14</color>
-    <color name="slot_membership_booking_selected">#163D22</color>
+    <color name="slot_membership_booking">#2A2300</color>
+    <color name="slot_membership_booking_selected">#3D3500</color>
     <color name="cancel_action">#CF6679</color>
     <color name="icon_bg_success">#33B5D86C</color>
     <color name="icon_bg_cancel">#33CF6679</color>

@@ -42,21 +42,25 @@ class SlotsViewModel @Inject constructor(
         viewModelScope.launch {
             userProfile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
             buildDateStrip()
-            selectDate(DateTimeUtils.today())
+            val defaultDate = _uiState.value.dates.firstOrNull { it.isBrowsable }?.dateString
+                ?: DateTimeUtils.today()
+            selectDate(defaultDate)
         }
     }
 
     private fun buildDateStrip() {
         val tier = userProfile?.membershipTier ?: MembershipTier.NONE
-        val dates = (0..13).map { offset ->
+        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val dates = (0..13).mapNotNull { offset ->
             val dateString = DateTimeUtils.dateWithOffset(offset)
             val daysUntil = DateTimeUtils.daysUntil(dateString)
+            if (daysUntil == 0 && currentHour >= 22) return@mapNotNull null
             DateItem(
                 dateString = dateString,
                 dayLabel = DateTimeUtils.dayLabel(dateString),
                 dayNumber = DateTimeUtils.dayNumber(dateString),
                 isSelected = false,
-                isBrowsable = BookingWindowUtils.isDateBrowsable(daysUntil, tier),
+                isBrowsable = BookingWindowUtils.isDateBrowsable(daysUntil, tier, currentHour),
             )
         }
         _uiState.update { it.copy(dates = dates) }

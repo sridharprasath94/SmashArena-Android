@@ -31,7 +31,10 @@ object BookingWindowUtils {
         return if (daysUntilSlot <= maxDays) serverStatus else SlotStatus.MEMBER_HOLD
     }
 
-    /** Whether a given date is selectable based on the user's membership tier. */
-    fun isDateBrowsable(daysUntil: Int, membershipTier: MembershipTier): Boolean =
-        daysUntil in 0..maxDaysAhead(membershipTier)
+    /** Whether a given date is selectable based on the user's membership tier and current hour. */
+    fun isDateBrowsable(daysUntil: Int, membershipTier: MembershipTier, currentHour: Int = -1): Boolean {
+        // After 22:00 all today's slots are past — hide today entirely
+        if (daysUntil == 0 && currentHour >= 22) return false
+        return daysUntil in 0..maxDaysAhead(membershipTier)
+    }
 }

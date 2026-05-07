@@ -45,6 +45,7 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
         adapter = PlanAdapter(
             onCardTapped = { plan -> viewModel.onCardTapped(plan.tier) },
             onGetStarted = { plan -> viewModel.onGetStarted(plan) },
+            onScheduleNextCycle = { plan -> viewModel.onScheduleNextCycle(plan.tier) },
         )
         binding.rvPlans.apply {
             this.adapter = this@MembershipFragment.adapter
@@ -83,6 +84,7 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
                                 tierName = nav.tier.name,
                                 amount = nav.amount,
                                 isUpgrade = nav.isUpgrade,
+                                isScheduled = nav.isScheduled,
                             )
                         findNavController().navigate(action)
                     }

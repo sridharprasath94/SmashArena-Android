@@ -70,12 +70,13 @@ class MyBookingsFragment : Fragment(R.layout.fragment_my_bookings) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
+                    val hasBookings = state.listItems.any { it is BookingListItem.Booking }
                     binding.progressBar.isVisible = state.isLoading
-                    binding.rvBookings.isVisible = !state.isLoading && state.bookings.isNotEmpty()
-                    binding.tvEmpty.isVisible = !state.isLoading && state.bookings.isEmpty()
+                    binding.rvBookings.isVisible = !state.isLoading && hasBookings
+                    binding.tvEmpty.isVisible = !state.isLoading && !hasBookings
 
                     adapter.cancellingDocId = state.cancellingDocId
-                    adapter.submitList(state.bookings)
+                    adapter.submitList(state.listItems)
 
                     if (state.cancelSuccess) {
                         viewModel.onCancelSuccessHandled()

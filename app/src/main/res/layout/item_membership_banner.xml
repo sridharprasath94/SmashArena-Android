@@ -82,7 +82,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:text="Cancelled"
+                        android:text="@string/membership_auto_renew_off"
                         android:textColor="@color/cancel_action"
                         android:textSize="11sp"
                         android:visibility="gone" />
@@ -130,6 +130,16 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp" />
+
+            <!-- Next cycle status -->
+            <TextView
+                android:id="@+id/tv_next_cycle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/accent_gold"
+                android:textSize="11sp"
+                android:visibility="gone" />
 
         </LinearLayout>
 

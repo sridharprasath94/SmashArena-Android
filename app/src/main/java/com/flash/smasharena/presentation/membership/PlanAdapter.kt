@@ -13,6 +13,7 @@ import com.flash.smasharena.databinding.ItemMembershipPlanBinding
 class PlanAdapter(
     private val onCardTapped: (PlanItem) -> Unit,
     private val onGetStarted: (PlanItem) -> Unit,
+    private val onScheduleNextCycle: (PlanItem) -> Unit,
 ) : ListAdapter<PlanItem, PlanAdapter.ViewHolder>(DiffCallback) {
 
     inner class ViewHolder(private val binding: ItemMembershipPlanBinding) :
@@ -29,39 +30,78 @@ class PlanAdapter(
             binding.tvCricketSessions.text =
                 ctx.getString(R.string.plan_cricket_sessions, item.cricketSessions)
 
-            // Card border + premium elevation/scale/background for selected or current plan
-            val active = item.isSelected || item.isCurrentPlan
-            val (strokeColor, strokeWidth) = if (active) {
-                ContextCompat.getColor(ctx, R.color.accent_gold) to 2
-            } else {
-                ContextCompat.getColor(ctx, R.color.outline) to 1
-            }
-            binding.root.strokeColor = strokeColor
-            binding.root.strokeWidth = strokeWidth
-
+            // Visual hierarchy: selected > current plan > scheduled next > unselected
             val dp = ctx.resources.displayMetrics.density
-            binding.root.cardElevation = if (active) 8f * dp else 0f
-            binding.root.animate().scaleX(if (active) 1.03f else 1f)
-                .scaleY(if (active) 1.03f else 1f).setDuration(200).start()
-            binding.root.setCardBackgroundColor(
-                ContextCompat.getColor(ctx, if (active) R.color.surface_selected else R.color.surface)
-            )
+            when {
+                item.isSelected -> {
+                    binding.root.strokeColor = ContextCompat.getColor(ctx, R.color.accent_gold)
+                    binding.root.strokeWidth = 3
+                    binding.root.cardElevation = 16f * dp
+                    binding.root.animate().scaleX(1.04f).scaleY(1.04f).setDuration(200).start()
+                    binding.root.setCardBackgroundColor(ContextCompat.getColor(ctx, R.color.surface_highlighted))
+                }
+                item.isCurrentPlan || item.isScheduledNext -> {
+                    binding.root.strokeColor = ContextCompat.getColor(ctx, R.color.accent_gold)
+                    binding.root.strokeWidth = 1
+                    binding.root.cardElevation = if (item.isCurrentPlan) 4f * dp else 2f * dp
+                    binding.root.animate().scaleX(1.02f).scaleY(1.02f).setDuration(200).start()
+                    binding.root.setCardBackgroundColor(ContextCompat.getColor(ctx, R.color.surface_selected))
+                }
+                else -> {
+                    binding.root.strokeColor = ContextCompat.getColor(ctx, R.color.outline)
+                    binding.root.strokeWidth = 1
+                    binding.root.cardElevation = 0f
+                    binding.root.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
+                    binding.root.setCardBackgroundColor(ContextCompat.getColor(ctx, R.color.surface))
+                }
+            }
 
-            // Whole card is tappable for selection
-            binding.root.setOnClickListener { onCardTapped(item) }
+            // Card is only tappable when it has an actionable button (not current plan, not already scheduled)
+            val isCardTappable = !item.isCurrentPlan && !item.isScheduledNext
+            binding.root.isClickable = isCardTappable
+            binding.root.isFocusable = isCardTappable
+            if (isCardTappable) {
+                binding.root.setOnClickListener { onCardTapped(item) }
+            } else {
+                binding.root.setOnClickListener(null)
+            }
 
-            // Button: visible only if this card is selected or it's the current plan
-            val showButton = item.isSelected || item.isCurrentPlan
+            // Primary button visible for current plan, scheduled-next plan, or selected card
+            val showButton = item.isSelected || item.isCurrentPlan || item.isScheduledNext
             binding.btnSelect.isVisible = showButton
 
+            // Secondary "Upgrade Next Cycle" button — only when selected + upgradeable + not already scheduled
+            binding.btnUpgradeNextCycle.isVisible =
+                item.isSelected && item.upgradePrice != null && !item.isScheduledNext
+            if (item.isSelected && item.upgradePrice != null && !item.isScheduledNext) {
+                binding.btnUpgradeNextCycle.text = ctx.getString(R.string.plan_upgrade_next_cycle_btn)
+                binding.btnUpgradeNextCycle.setOnClickListener { onScheduleNextCycle(item) }
+            }
+
             when {
+                item.isSelected && item.scheduledCta != null -> {
+                    binding.btnSelect.text = item.scheduledCta
+                    binding.btnSelect.isEnabled = true
+                    binding.btnSelect.alpha = 1f
+                    binding.btnSelect.setOnClickListener { onGetStarted(item) }
+                }
+                item.isCurrentPlan && item.isCancelled -> {
+                    binding.btnSelect.text = item.expiryText ?: ctx.getString(R.string.plan_current)
+                    binding.btnSelect.isEnabled = false
+                    binding.btnSelect.alpha = 0.55f
+                }
                 item.isCurrentPlan -> {
                     binding.btnSelect.text = ctx.getString(R.string.plan_current)
                     binding.btnSelect.isEnabled = false
                     binding.btnSelect.alpha = 0.45f
                 }
+                item.isScheduledNext -> {
+                    binding.btnSelect.text = ctx.getString(R.string.plan_next_cycle)
+                    binding.btnSelect.isEnabled = false
+                    binding.btnSelect.alpha = 0.65f
+                }
                 item.isSelected && item.upgradePrice != null -> {
-                    binding.btnSelect.text = ctx.getString(R.string.plan_upgrade_btn, item.upgradePrice)
+                    binding.btnSelect.text = ctx.getString(R.string.plan_upgrade_btn)
                     binding.btnSelect.isEnabled = true
                     binding.btnSelect.alpha = 1f
                     binding.btnSelect.setOnClickListener { onGetStarted(item) }

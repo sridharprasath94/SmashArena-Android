@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,18 +25,23 @@ class MembershipViewModel @Inject constructor(
     val uiState: StateFlow<MembershipUiState> = _uiState.asStateFlow()
 
     private var currentTier: MembershipTier = MembershipTier.NONE
+    private var isCancelled: Boolean = false
+    private var membershipExpiry: Long? = null
+    private var scheduledNextTier: MembershipTier? = null
     private var selectedTier: MembershipTier? = null
 
     init {
         viewModelScope.launch {
             val profile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
             currentTier = profile?.membershipTier ?: MembershipTier.NONE
-            val alreadyCancelled = profile?.membershipCancelled == true
+            isCancelled = profile?.membershipCancelled == true
+            membershipExpiry = profile?.membershipExpiry
+            scheduledNextTier = profile?.scheduledNextTier
             _uiState.update {
                 it.copy(
                     plans = buildPlans(),
                     currentTier = currentTier,
-                    showCancelButton = currentTier != MembershipTier.NONE && !alreadyCancelled,
+                    showCancelButton = computeShowCancelButton(),
                     isLoading = false,
                 )
             }
@@ -42,18 +50,48 @@ class MembershipViewModel @Inject constructor(
 
     fun onCardTapped(tier: MembershipTier) {
         if (tier == currentTier) return
-        if (tier.ordinal < currentTier.ordinal) return
+        if (scheduledNextTier == tier) return
         selectedTier = if (selectedTier == tier) null else tier
         _uiState.update { it.copy(plans = buildPlans()) }
     }
 
     fun onGetStarted(item: PlanItem) {
+        val isDowngrade = item.tier.ordinal < currentTier.ordinal
+        if (isCancelled) {
+            onScheduleNextCycle(item.tier)
+            return
+        }
+        if (isDowngrade) {
+            onScheduleNextCycle(item.tier)
+            return
+        }
         val isUpgrade = item.upgradePrice != null
         val amount = item.upgradePrice ?: item.tier.priceRupees
         _uiState.update {
             it.copy(
                 navigateToPayment = NavigateToMembershipPayment(item.tier, amount, isUpgrade)
             )
+        }
+    }
+
+    fun onScheduleNextCycle(tier: MembershipTier) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            runCatching { userRepository.scheduleNextCycleMembership(tier) }
+                .onSuccess {
+                    scheduledNextTier = tier
+                    selectedTier = null
+                    _uiState.update {
+                        it.copy(
+                            plans = buildPlans(),
+                            showCancelButton = computeShowCancelButton(),
+                            isLoading = false,
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(isLoading = false, error = e.toAppError()) }
+                }
         }
     }
 
@@ -70,20 +108,40 @@ class MembershipViewModel @Inject constructor(
     fun onCancelSuccessHandled() = _uiState.update { it.copy(cancelSuccess = false) }
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
 
-    private fun buildPlans(): List<PlanItem> =
-        listOf(MembershipTier.RALLY, MembershipTier.SMASH, MembershipTier.ACE).map { tier ->
-            val upgradePrice = if (tier.ordinal > currentTier.ordinal && currentTier != MembershipTier.NONE) {
+    private fun computeShowCancelButton() =
+        currentTier != MembershipTier.NONE && (!isCancelled || scheduledNextTier != null)
+
+    private fun buildPlans(): List<PlanItem> {
+        val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
+        val expiryLabel = membershipExpiry?.let { sdf.format(Date(it)) }
+        return listOf(MembershipTier.RALLY, MembershipTier.SMASH, MembershipTier.ACE).map { tier ->
+            val isCurrentPlan = tier == currentTier
+            val upgradePrice = if (!isCancelled && tier.ordinal > currentTier.ordinal && currentTier != MembershipTier.NONE) {
                 tier.priceRupees - currentTier.priceRupees
             } else null
+            val isSelected = tier == selectedTier
+            val isScheduledNext = scheduledNextTier == tier && !isCurrentPlan
+            val scheduledCta: String? = when {
+                !isSelected || isScheduledNext -> null
+                isCancelled && tier == currentTier -> null
+                isCancelled -> "Schedule for next cycle"
+                tier.ordinal < currentTier.ordinal -> "Downgrade for Next Cycle"
+                else -> null
+            }
             PlanItem(
                 tier = tier,
                 price = "₹${"%,d".format(tier.priceRupees)} / month",
                 badmintonSessions = tier.sessionsPerMonth,
                 cricketSessions = tier.cricketSessionsPerMonth,
-                isCurrentPlan = tier == currentTier,
+                isCurrentPlan = isCurrentPlan,
                 isRecommended = tier == MembershipTier.SMASH,
-                isSelected = tier == selectedTier,
+                isSelected = isSelected,
                 upgradePrice = upgradePrice,
+                isCancelled = isCancelled && isCurrentPlan,
+                expiryText = if (isCancelled && isCurrentPlan && expiryLabel != null && scheduledNextTier == null) "Expires $expiryLabel" else null,
+                isScheduledNext = isScheduledNext,
+                scheduledCta = scheduledCta,
             )
         }
+    }
 }

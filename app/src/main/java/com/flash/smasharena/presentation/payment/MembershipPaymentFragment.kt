@@ -45,10 +45,10 @@ class MembershipPaymentFragment : Fragment(R.layout.fragment_payment) {
     private fun populateOrderSummary() {
         val tier = MembershipTier.valueOf(args.tierName)
         binding.tvFacilityName.text = "${tier.displayName} Plan"
-        binding.tvDatetime.text = if (args.isUpgrade) {
-            getString(R.string.membership_upgrade_description, tier.sessionsPerMonth)
-        } else {
-            getString(R.string.membership_purchase_description, tier.sessionsPerMonth)
+        binding.tvDatetime.text = when {
+            args.isScheduled -> getString(R.string.membership_schedule_description, tier.sessionsPerMonth)
+            args.isUpgrade   -> getString(R.string.membership_upgrade_description, tier.sessionsPerMonth)
+            else             -> getString(R.string.membership_purchase_description, tier.sessionsPerMonth)
         }
         binding.tvAmount.text = "₹${"%,d".format(args.amount)}"
         binding.btnPay.text = getString(R.string.payment_btn_pay, args.amount)

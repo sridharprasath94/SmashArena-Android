@@ -115,7 +115,7 @@
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
 
-        <!-- CTA button — hidden until card is selected -->
+        <!-- Primary CTA — hidden until card is selected -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_select"
             android:layout_width="match_parent"
@@ -126,6 +126,22 @@
             android:visibility="gone"
             app:backgroundTint="@color/accent_gold"
             app:cornerRadius="24dp" />
+
+        <!-- Secondary CTA — "Upgrade Next Cycle", shown alongside Upgrade -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_upgrade_next_cycle"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/accent_gold"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:backgroundTint="@android:color/transparent"
+            app:cornerRadius="24dp"
+            app:strokeColor="@color/accent_gold"
+            app:strokeWidth="1dp" />
 
     </LinearLayout>
 
