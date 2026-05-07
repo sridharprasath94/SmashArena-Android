@@ -21,7 +21,13 @@ login → home → (slots → payment | myBookings | membership → membershipPa
 **Facilities:** `badminton_court_1`, `cricket_net_1` — hours 5–21; doc ID: `{facilityId}_{date}_{hour}`
 Pricing: Badminton ₹300/₹200/₹300 | Cricket ₹400/₹300/₹400 (early/mid/late)
 
-**Membership:** RALLY ₹1k (8+2 slots), SMASH ₹1.5k (12+3), ACE ₹2k (16+4) — 30-day expiry; upgrade pays diff only; downgrade blocked.
+**Membership:** RALLY ₹1k (8+2 slots), SMASH ₹1.5k (12+3), ACE ₹2k (16+4) — 30-day expiry; upgrade pays diff only; downgrade/cancel = schedule next cycle only (no payment).
+
+**Membership flow:** `onGetStarted` — cancelled or downgrade → `scheduleNextCycleMembership(tier)` directly; upgrade → navigate to payment. `cancelMembership()` also clears `scheduledNextTier` in Firestore. `computeShowCancelButton()` = `currentTier != NONE && (!isCancelled || scheduledNextTier != null)`.
+
+**Firestore fields:** `/users/{uid}` — `badmintonSessionsUsed` (renamed from `sessionsUsed`), `scheduledNextTier`, `membershipCancelled`, `membershipExpiry`.
+
+**Real-time profile:** `UserRepository.observeProfile()` via `callbackFlow` + `addSnapshotListener`; `HomeViewModel` collects this for live home screen updates.
 
 **Booking window** (`BookingWindowUtils.effectiveStatus()`):
 - `>7 days` → LOCKED | `6–7` → MEMBER_HOLD | `0–5` → open | `<0` → LOCKED
@@ -43,7 +49,7 @@ suspendCancellableCoroutine { cont ->
 }
 ```
 
-**Dialogs:** Confirmations → `ConfirmationDialog` (BOOK/CANCEL/LOGOUT/INFO/CANCEL_MEMBERSHIP). Success → `BookingResultDialog`. Never `MaterialAlertDialogBuilder` or Snackbar for success.
+**Dialogs:** Confirmations → `ConfirmationDialog` (BOOK/CANCEL/LOGOUT/INFO/CANCEL_MEMBERSHIP/SELECT_MEMBERSHIP/SCHEDULE_MEMBERSHIP). Success → `BookingResultDialog`. Never `MaterialAlertDialogBuilder` or Snackbar for success.
 
 **Payment:** Both payment VMs use `delay(1500L)` simulation before repository call.
 
