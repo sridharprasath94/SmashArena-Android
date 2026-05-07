@@ -3,6 +3,11 @@ package com.flash.smasharena.presentation.membership
 import com.flash.smasharena.domain.model.AppError
 import com.flash.smasharena.domain.model.MembershipTier
 
+sealed class MembershipPendingAction {
+    data class SelectPlan(val item: PlanItem, val amount: Int, val isUpgrade: Boolean) : MembershipPendingAction()
+    data class SchedulePlan(val tier: MembershipTier) : MembershipPendingAction()
+}
+
 data class PlanItem(
     val tier: MembershipTier,
     val price: String,
@@ -30,6 +35,7 @@ data class MembershipUiState(
     val currentTier: MembershipTier = MembershipTier.NONE,
     val isLoading: Boolean = true,
     val navigateToPayment: NavigateToMembershipPayment? = null,
+    val pendingAction: MembershipPendingAction? = null,
     val showCancelButton: Boolean = false,
     val cancelSuccess: Boolean = false,
     val error: AppError? = null,

@@ -26,6 +26,7 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
     private val binding by viewBinding(FragmentMembershipBinding::bind)
 
     private lateinit var adapter: PlanAdapter
+    private var pendingAction: MembershipPendingAction? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -34,6 +35,8 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
         setupRecyclerView()
         setupCancelButton()
         setupCancelMembershipListener()
+        setupSelectMembershipListener()
+        setupScheduleMembershipListener()
         observeUiState()
     }
 
@@ -67,6 +70,26 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
         ) { _, _ -> viewModel.cancelMembership() }
     }
 
+    private fun setupSelectMembershipListener() {
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_SELECT_MEMBERSHIP, viewLifecycleOwner
+        ) { _, _ ->
+            val action = pendingAction as? MembershipPendingAction.SelectPlan ?: return@setFragmentResultListener
+            pendingAction = null
+            viewModel.confirmSelectPlan(action.item, action.amount, action.isUpgrade)
+        }
+    }
+
+    private fun setupScheduleMembershipListener() {
+        childFragmentManager.setFragmentResultListener(
+            ConfirmationDialog.REQUEST_SCHEDULE_MEMBERSHIP, viewLifecycleOwner
+        ) { _, _ ->
+            val action = pendingAction as? MembershipPendingAction.SchedulePlan ?: return@setFragmentResultListener
+            pendingAction = null
+            viewModel.confirmScheduleNextCycle(action.tier)
+        }
+    }
+
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -76,6 +99,28 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
                     binding.btnCancelMembership.isVisible = state.showCancelButton && !state.isLoading
 
                     adapter.submitList(state.plans)
+
+                    state.pendingAction?.let { action ->
+                        viewModel.onPendingActionConsumed()
+                        pendingAction = action
+                        when (action) {
+                            is MembershipPendingAction.SelectPlan -> {
+                                val tierName = action.item.tier.displayName
+                                val amountStr = "%,d".format(action.amount)
+                                val message = if (action.isUpgrade) {
+                                    "You'll be charged ₹$amountStr to upgrade to $tierName immediately."
+                                } else {
+                                    "You'll be charged ₹$amountStr for $tierName membership."
+                                }
+                                ConfirmationDialog.selectMembership(message)
+                                    .show(childFragmentManager, "confirm_select_membership")
+                            }
+                            is MembershipPendingAction.SchedulePlan -> {
+                                ConfirmationDialog.scheduleMembership(action.tier.displayName)
+                                    .show(childFragmentManager, "confirm_schedule_membership")
+                            }
+                        }
+                    }
 
                     state.navigateToPayment?.let { nav ->
                         viewModel.onNavigatedToPayment()
