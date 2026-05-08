@@ -129,10 +129,10 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     private fun observePaymentResult() {
         findNavController().currentBackStackEntry
             ?.savedStateHandle
-            ?.getLiveData<Bundle>("booking_result")
+            ?.getLiveData<android.os.Bundle>("booking_result")
             ?.observe(viewLifecycleOwner) { bundle ->
                 findNavController().currentBackStackEntry
-                    ?.savedStateHandle?.remove<Bundle>("booking_result")
+                    ?.savedStateHandle?.remove<android.os.Bundle>("booking_result")
                 val facilityName = bundle.getString("facilityName") ?: return@observe
                 val dateLabel    = bundle.getString("dateLabel")    ?: return@observe
                 val timeLabel    = bundle.getString("timeLabel")    ?: return@observe
@@ -145,45 +145,51 @@ class SlotsFragment : Fragment(R.layout.fragment_slots) {
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    binding.toolbar.title = state.facilityName
+                launch {
+                    viewModel.uiState.collect { state ->
+                        binding.toolbar.title = state.facilityName
 
-                    dateAdapter.submitList(state.dates)
-                    slotAdapter.submitList(state.slots)
+                        dateAdapter.submitList(state.dates)
+                        slotAdapter.submitList(state.slots)
 
-                    val busy = state.isCancelling || state.isBookingFree
-                    val isCancelSelected = state.selectedSlot?.effectiveStatus == SlotStatus.MY_BOOKING
-                    binding.btnBook.isVisible = state.selectedSlot != null && !busy
-                    binding.btnBook.text = state.selectedSlot?.let {
-                        if (isCancelSelected) "Cancel ${it.timeLabel}" else "Book ${it.timeLabel}"
-                    } ?: getString(R.string.booking_confirm)
-                    binding.btnBook.backgroundTintList = ColorStateList.valueOf(
-                        ContextCompat.getColor(
-                            requireContext(),
-                            if (isCancelSelected) R.color.cancel_action else R.color.accent_green,
+                        val busy = state.isCancelling || state.isBookingFree
+                        val isCancelSelected = state.selectedSlot?.effectiveStatus == SlotStatus.MY_BOOKING
+                        binding.btnBook.isVisible = state.selectedSlot != null && !busy
+                        binding.btnBook.text = state.selectedSlot?.let {
+                            if (isCancelSelected) "Cancel ${it.timeLabel}" else "Book ${it.timeLabel}"
+                        } ?: getString(R.string.booking_confirm)
+                        binding.btnBook.backgroundTintList = ColorStateList.valueOf(
+                            ContextCompat.getColor(
+                                requireContext(),
+                                if (isCancelSelected) R.color.cancel_action else R.color.accent_green,
+                            )
                         )
-                    )
-                    binding.btnBook.setTextColor(
-                        ContextCompat.getColor(
-                            requireContext(),
-                            if (isCancelSelected) R.color.text_primary else R.color.background,
+                        binding.btnBook.setTextColor(
+                            ContextCompat.getColor(
+                                requireContext(),
+                                if (isCancelSelected) R.color.text_primary else R.color.background,
+                            )
                         )
-                    )
-                    binding.progressBooking.isVisible = busy
+                        binding.progressBooking.isVisible = busy
 
-                    state.bookingResultInfo?.let { info ->
-                        viewModel.onResultShown()
-                        runCatching {
-                            findNavController().getBackStackEntry(R.id.homeFragment)
-                                .savedStateHandle["session_updated"] = true
+                        state.error?.let { error ->
+                            viewModel.onErrorShown()
+                            Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
                         }
-                        BookingResultDialog.newInstance(info)
-                            .show(childFragmentManager, "booking_result")
                     }
-
-                    state.error?.let { error ->
-                        viewModel.onErrorShown()
-                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
+                }
+                launch {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            is SlotsEvent.ShowBookingResult -> {
+                                runCatching {
+                                    findNavController().getBackStackEntry(R.id.homeFragment)
+                                        .savedStateHandle["session_updated"] = true
+                                }
+                                BookingResultDialog.newInstance(event.info)
+                                    .show(childFragmentManager, "booking_result")
+                            }
+                        }
                     }
                 }
             }

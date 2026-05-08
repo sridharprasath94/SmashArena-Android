@@ -15,9 +15,12 @@ import com.flash.smasharena.util.toAppError
 import java.util.Calendar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,6 +37,9 @@ class SlotsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SlotsUiState(facilityName = facilityName))
     val uiState: StateFlow<SlotsUiState> = _uiState.asStateFlow()
+
+    private val _events = Channel<SlotsEvent>(Channel.BUFFERED)
+    val events: Flow<SlotsEvent> = _events.receiveAsFlow()
 
     private var userProfile: UserProfile? = null
     private var slotObserverJob: Job? = null
@@ -132,20 +138,14 @@ class SlotsViewModel @Inject constructor(
                 .onSuccess {
                     if (slot.isFreeMembership) {
                         runCatching { userRepository.decrementSessionsUsed(isCricket = facilityId == Facility.CRICKET_NET.id) }
-                        userProfile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
                     }
-                    _uiState.update {
-                        it.copy(
-                            isCancelling = false,
-                            selectedSlot = null,
-                            bookingResultInfo = BookingResultInfo(
-                                type = ResultType.CANCELLED,
-                                facilityName = facilityName,
-                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
-                                timeLabel = slot.timeLabel,
-                            )
-                        )
-                    }
+                    _uiState.update { it.copy(isCancelling = false, selectedSlot = null) }
+                    _events.trySend(SlotsEvent.ShowBookingResult(BookingResultInfo(
+                        type = ResultType.CANCELLED,
+                        facilityName = facilityName,
+                        dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+                        timeLabel = slot.timeLabel,
+                    )))
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(isCancelling = false, error = e.toAppError()) }
@@ -192,19 +192,13 @@ class SlotsViewModel @Inject constructor(
             slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour, isFreeMembership = true)
                 .onSuccess {
                     runCatching { userRepository.incrementSessionsUsed(isCricket = facilityId == Facility.CRICKET_NET.id) }
-                    userProfile = runCatching { userRepository.getOrCreateProfile() }.getOrNull()
-                    _uiState.update {
-                        it.copy(
-                            isBookingFree = false,
-                            selectedSlot = null,
-                            bookingResultInfo = BookingResultInfo(
-                                type = ResultType.BOOKED,
-                                facilityName = facilityName,
-                                dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
-                                timeLabel = slot.timeLabel,
-                            )
-                        )
-                    }
+                    _uiState.update { it.copy(isBookingFree = false, selectedSlot = null) }
+                    _events.trySend(SlotsEvent.ShowBookingResult(BookingResultInfo(
+                        type = ResultType.BOOKED,
+                        facilityName = facilityName,
+                        dateLabel = "${dateItem.dayLabel}, ${dateItem.dayNumber}",
+                        timeLabel = slot.timeLabel,
+                    )))
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(isBookingFree = false, error = e.toAppError()) }
@@ -213,5 +207,4 @@ class SlotsViewModel @Inject constructor(
     }
 
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
-    fun onResultShown() = _uiState.update { it.copy(bookingResultInfo = null) }
 }
