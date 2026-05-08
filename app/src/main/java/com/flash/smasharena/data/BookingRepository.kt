@@ -1,10 +1,8 @@
 package com.flash.smasharena.data
 
 import kotlinx.coroutines.flow.Flow
-import java.time.Instant
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import java.util.Calendar
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
 /**
@@ -30,7 +28,7 @@ class BookingRepository(
     private val bookingDao: BookingDao,
     private val courtDao: CourtDao,
     private val userDao: UserDao,
-    private val zoneId: ZoneId = ZoneId.systemDefault(),
+    private val timeZone: TimeZone = TimeZone.getDefault(),
     private val nowProvider: () -> Long = { System.currentTimeMillis() },
 ) {
 
@@ -115,18 +113,26 @@ class BookingRepository(
 
     /** Calendar-day [start, endExclusive) for a moment, in the configured zone. */
     private fun dayBoundsFor(epochMs: Long): Pair<Long, Long> {
-        val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMs), zoneId)
-        val startOfDay = zdt.toLocalDate().atStartOfDay(zoneId)
-        val nextDay = startOfDay.plusDays(1)
-        return startOfDay.toInstant().toEpochMilli() to nextDay.toInstant().toEpochMilli()
+        val cal = Calendar.getInstance(timeZone).apply { timeInMillis = epochMs }
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val startOfDay = cal.timeInMillis
+        cal.add(Calendar.DAY_OF_MONTH, 1)
+        return startOfDay to cal.timeInMillis
     }
 
     /** [start, endExclusive) of the peak window for the day containing epochMs. */
     private fun peakWindowFor(epochMs: Long): Pair<Long, Long> {
-        val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMs), zoneId)
-        val day = zdt.toLocalDate()
-        val peakStart = day.atTime(PEAK_START).atZone(zoneId).toInstant().toEpochMilli()
-        val peakEnd = day.atTime(PEAK_END).atZone(zoneId).toInstant().toEpochMilli()
+        val cal = Calendar.getInstance(timeZone).apply { timeInMillis = epochMs }
+        cal.set(Calendar.HOUR_OF_DAY, PEAK_START_HOUR)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val peakStart = cal.timeInMillis
+        cal.set(Calendar.HOUR_OF_DAY, PEAK_END_HOUR)
+        val peakEnd = cal.timeInMillis
         return peakStart to peakEnd
     }
 
@@ -138,9 +144,9 @@ class BookingRepository(
     companion object {
         const val MIN_DURATION_MIN = 30
         const val MAX_DURATION_MIN = 120
-        const val MAX_DAILY_MINUTES = 120 // 2 hours
-        val PEAK_START: LocalTime = LocalTime.of(18, 0)
-        val PEAK_END: LocalTime = LocalTime.of(21, 0)
+        const val MAX_DAILY_MINUTES = 120
+        const val PEAK_START_HOUR = 18
+        const val PEAK_END_HOUR = 21
     }
 }
 

@@ -14,8 +14,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
-import java.time.ZoneId
+import java.util.Calendar
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
 /**
@@ -25,10 +25,15 @@ import java.util.concurrent.TimeUnit
  */
 class BookingRepositoryTest {
 
-    private val zone = ZoneId.of("UTC")
-    private val today = LocalDate.of(2026, 4, 25)
-    private val nineAm = today.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
-    private val sixPm = today.atTime(18, 0).atZone(zone).toInstant().toEpochMilli()
+    private val zone = TimeZone.getTimeZone("UTC")
+    private val nineAm: Long = Calendar.getInstance(zone).apply {
+        set(2026, Calendar.APRIL, 25, 9, 0, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    private val sixPm: Long = Calendar.getInstance(zone).apply {
+        set(2026, Calendar.APRIL, 25, 18, 0, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
     private fun newRepo(now: Long = nineAm - TimeUnit.HOURS.toMillis(1)): Pair<BookingRepository, FakeBookingDao> {
         val bookings = FakeBookingDao()
@@ -38,7 +43,7 @@ class BookingRepositoryTest {
             bookingDao = bookings,
             courtDao = courts,
             userDao = users,
-            zoneId = zone,
+            timeZone = zone,
             nowProvider = { now },
         ).also {
             // Seed two users.

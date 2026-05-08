@@ -5,17 +5,16 @@ import com.flash.smasharena.domain.model.Slot
 import com.flash.smasharena.domain.model.SlotStatus
 import com.flash.smasharena.domain.repository.SlotRepository
 import com.flash.smasharena.util.NetworkMonitor
+import com.flash.smasharena.util.await
+import com.flash.smasharena.util.requireUid
 import com.flash.smasharena.util.toAppError
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class SlotRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -23,10 +22,14 @@ class SlotRepositoryImpl @Inject constructor(
     private val networkMonitor: NetworkMonitor,
 ) : SlotRepository {
 
+    private fun requireNetwork() {
+        if (!networkMonitor.isConnected()) throw AppError.NoInternet
+    }
+
     override fun observeSlots(facilityId: String, date: String): Flow<List<Slot>> = callbackFlow {
         val query = firestore.collection("slots")
-            .whereEqualTo("facilityId", facilityId)
-            .whereEqualTo("date", date)
+            .whereEqualTo(SlotFields.FACILITY_ID, facilityId)
+            .whereEqualTo(SlotFields.DATE, date)
 
         val listener = query.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -59,7 +62,7 @@ class SlotRepositoryImpl @Inject constructor(
         }
         val today = com.flash.smasharena.util.DateTimeUtils.today()
         val listener = firestore.collection("slots")
-            .whereEqualTo("bookedBy", uid)
+            .whereEqualTo(SlotFields.BOOKED_BY, uid)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) { close(error.toAppError()); return@addSnapshotListener }
                 val slots = snapshot?.documents
@@ -73,59 +76,57 @@ class SlotRepositoryImpl @Inject constructor(
     }
 
     override suspend fun cancelBooking(docId: String): Result<Unit> = runCatching {
-        if (!networkMonitor.isConnected()) throw AppError.NoInternet
-        val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
-        suspendCancellableCoroutine { cont ->
-            val docRef = firestore.collection("slots").document(docId)
-            firestore.runTransaction { tx ->
-                val snapshot = tx.get(docRef)
-                if (snapshot.getString("bookedBy") != uid) throw AppError.NotYourBooking
-                tx.delete(docRef)
-            }
-                .addOnSuccessListener { cont.resume(Unit) }
-                .addOnFailureListener { cont.resumeWithException(it.toAppError()) }
-        }
+        requireNetwork()
+        val uid = firebaseAuth.requireUid()
+        val docRef = firestore.collection("slots").document(docId)
+        firestore.runTransaction { tx ->
+            val snapshot = tx.get(docRef)
+            if (snapshot.getString(SlotFields.BOOKED_BY) != uid) throw AppError.NotYourBooking
+            tx.delete(docRef)
+        }.await()
     }
 
-    override suspend fun bookSlot(facilityId: String, date: String, hour: Int, isFreeMembership: Boolean): Result<Unit> =
-        runCatching {
-            if (!networkMonitor.isConnected()) throw AppError.NoInternet
-            val uid = firebaseAuth.currentUser?.uid ?: throw AppError.NotSignedIn
-            val docRef = firestore.collection("slots")
-                .document("${facilityId}_${date}_${hour}")
-
-            suspendCancellableCoroutine { cont ->
-                firestore.runTransaction { tx ->
-                    val snapshot = tx.get(docRef)
-                    if (snapshot.exists() && snapshot.getString("status") == "booked") {
-                        throw AppError.SlotAlreadyBooked
-                    }
-                    tx.set(
-                        docRef, mapOf(
-                            "facilityId" to facilityId,
-                            "date" to date,
-                            "hour" to hour,
-                            "status" to "booked",
-                            "bookedBy" to uid,
-                            "bookedAt" to com.google.firebase.Timestamp.now(),
-                            "isFreeMembership" to isFreeMembership,
-                        )
-                    )
-                }
-                    .addOnSuccessListener { cont.resume(Unit) }
-                    .addOnFailureListener { cont.resumeWithException(it.toAppError()) }
+    override suspend fun bookSlot(
+        facilityId: String,
+        date: String,
+        hour: Int,
+        isFreeMembership: Boolean,
+    ): Result<Unit> = runCatching {
+        requireNetwork()
+        val uid = firebaseAuth.requireUid()
+        val docRef = firestore.collection("slots").document("${facilityId}_${date}_${hour}")
+        firestore.runTransaction { tx ->
+            val snapshot = tx.get(docRef)
+            if (snapshot.exists() && snapshot.getString(SlotFields.STATUS) == "booked") {
+                throw AppError.SlotAlreadyBooked
             }
-        }
+            tx.set(
+                docRef, mapOf(
+                    SlotFields.FACILITY_ID to facilityId,
+                    SlotFields.DATE to date,
+                    SlotFields.HOUR to hour,
+                    SlotFields.STATUS to "booked",
+                    SlotFields.BOOKED_BY to uid,
+                    SlotFields.BOOKED_AT to com.google.firebase.Timestamp.now(),
+                    SlotFields.IS_FREE_MEMBERSHIP to isFreeMembership,
+                )
+            )
+        }.await()
+    }
 
     private fun DocumentSnapshot.toSlot(): Slot? {
-        val facilityId = getString("facilityId") ?: return null
-        val date = getString("date") ?: return null
-        val hour = getLong("hour")?.toInt() ?: return null
-        val status = when (getString("status")) {
+        val facilityId = getString(SlotFields.FACILITY_ID) ?: return null
+        val date = getString(SlotFields.DATE) ?: return null
+        val hour = getLong(SlotFields.HOUR)?.toInt() ?: return null
+        val status = when (getString(SlotFields.STATUS)) {
             "booked"      -> SlotStatus.BOOKED
             "member_hold" -> SlotStatus.MEMBER_HOLD
             else          -> SlotStatus.AVAILABLE
         }
-        return Slot(facilityId, date, hour, status, getString("bookedBy"), getBoolean("isFreeMembership") == true)
+        return Slot(
+            facilityId, date, hour, status,
+            getString(SlotFields.BOOKED_BY),
+            getBoolean(SlotFields.IS_FREE_MEMBERSHIP) == true,
+        )
     }
 }
