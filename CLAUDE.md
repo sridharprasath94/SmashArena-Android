@@ -10,6 +10,12 @@ Android sports facility booking app. Package: `com.flash.smasharena` | Min SDK 2
 ```
 **Critical:** Do NOT add `alias(libs.plugins.kotlin.android)` to `app/build.gradle.kts` — AGP 9.x bundles Kotlin already.
 
+**Deploy:** After any code change, always build with:
+```bash
+./gradlew clean :app:assembleDebug --no-build-cache
+```
+Never skip `clean` or `--no-build-cache` — the Gradle build cache can produce a corrupted intermediates APK that is missing `AndroidManifest.xml`, causing Android Studio's deploy to fail with `Missing AndroidManifest.xml entry`. In Android Studio, use **Build → Clean Project** then re-run instead of incremental builds.
+
 ## Stack
 Kotlin · XML + View Binding (`dev.androidbroadcast.vbpd`) + Material 3 · MVVM + Clean Arch · Hilt · Nav Component + Safe Args · Coroutines + StateFlow · Firebase Auth + Firestore · Room (unused, keep)
 
