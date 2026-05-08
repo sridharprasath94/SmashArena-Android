@@ -6,9 +6,12 @@ import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.domain.repository.UserRepository
 import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -23,6 +26,9 @@ class MembershipViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(MembershipUiState())
     val uiState: StateFlow<MembershipUiState> = _uiState.asStateFlow()
+
+    private val _events = Channel<MembershipEvent>(Channel.BUFFERED)
+    val events: Flow<MembershipEvent> = _events.receiveAsFlow()
 
     private var currentTier: MembershipTier = MembershipTier.NONE
     private var isCancelled: Boolean = false
@@ -74,9 +80,7 @@ class MembershipViewModel @Inject constructor(
     fun onPendingActionConsumed() = _uiState.update { it.copy(pendingAction = null) }
 
     fun confirmSelectPlan(item: PlanItem, amount: Int, isUpgrade: Boolean) {
-        _uiState.update {
-            it.copy(navigateToPayment = NavigateToMembershipPayment(item.tier, amount, isUpgrade))
-        }
+        _events.trySend(MembershipEvent.NavigateToPayment(NavigateToMembershipPayment(item.tier, amount, isUpgrade)))
     }
 
     fun confirmScheduleNextCycle(tier: MembershipTier) {
@@ -100,17 +104,14 @@ class MembershipViewModel @Inject constructor(
         }
     }
 
-    fun onNavigatedToPayment() = _uiState.update { it.copy(navigateToPayment = null) }
-
     fun cancelMembership() {
         viewModelScope.launch {
             runCatching { userRepository.cancelMembership() }
-                .onSuccess { _uiState.update { it.copy(cancelSuccess = true) } }
+                .onSuccess { _events.trySend(MembershipEvent.CancelSuccess) }
                 .onFailure { e -> _uiState.update { it.copy(error = e.toAppError()) } }
         }
     }
 
-    fun onCancelSuccessHandled() = _uiState.update { it.copy(cancelSuccess = false) }
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
 
     private fun computeShowCancelButton() =

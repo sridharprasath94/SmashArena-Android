@@ -93,57 +93,62 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    binding.progressBar.isVisible = state.isLoading
-                    binding.rvPlans.isVisible = !state.isLoading
-                    binding.btnCancelMembership.isVisible = state.showCancelButton && !state.isLoading
+                launch {
+                    viewModel.uiState.collect { state ->
+                        binding.progressBar.isVisible = state.isLoading
+                        binding.rvPlans.isVisible = !state.isLoading
+                        binding.btnCancelMembership.isVisible = state.showCancelButton && !state.isLoading
 
-                    adapter.submitList(state.plans)
+                        adapter.submitList(state.plans)
 
-                    state.pendingAction?.let { action ->
-                        viewModel.onPendingActionConsumed()
-                        pendingAction = action
-                        when (action) {
-                            is MembershipPendingAction.SelectPlan -> {
-                                val tierName = action.item.tier.displayName
-                                val amountStr = "%,d".format(action.amount)
-                                val message = if (action.isUpgrade) {
-                                    "You'll be charged ₹$amountStr to upgrade to $tierName immediately."
-                                } else {
-                                    "You'll be charged ₹$amountStr for $tierName membership."
+                        state.pendingAction?.let { action ->
+                            viewModel.onPendingActionConsumed()
+                            pendingAction = action
+                            when (action) {
+                                is MembershipPendingAction.SelectPlan -> {
+                                    val tierName = action.item.tier.displayName
+                                    val amountStr = "%,d".format(action.amount)
+                                    val message = if (action.isUpgrade) {
+                                        "You'll be charged ₹$amountStr to upgrade to $tierName immediately."
+                                    } else {
+                                        "You'll be charged ₹$amountStr for $tierName membership."
+                                    }
+                                    ConfirmationDialog.selectMembership(message)
+                                        .show(childFragmentManager, "confirm_select_membership")
                                 }
-                                ConfirmationDialog.selectMembership(message)
-                                    .show(childFragmentManager, "confirm_select_membership")
-                            }
-                            is MembershipPendingAction.SchedulePlan -> {
-                                ConfirmationDialog.scheduleMembership(action.tier.displayName)
-                                    .show(childFragmentManager, "confirm_schedule_membership")
+                                is MembershipPendingAction.SchedulePlan -> {
+                                    ConfirmationDialog.scheduleMembership(action.tier.displayName)
+                                        .show(childFragmentManager, "confirm_schedule_membership")
+                                }
                             }
                         }
-                    }
 
-                    state.navigateToPayment?.let { nav ->
-                        viewModel.onNavigatedToPayment()
-                        val action = MembershipFragmentDirections
-                            .actionMembershipFragmentToMembershipPaymentFragment(
-                                tierName = nav.tier.name,
-                                amount = nav.amount,
-                                isUpgrade = nav.isUpgrade,
-                                isScheduled = nav.isScheduled,
-                            )
-                        findNavController().navigate(action)
+                        state.error?.let { error ->
+                            viewModel.onErrorShown()
+                            Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
+                        }
                     }
-
-                    if (state.cancelSuccess) {
-                        viewModel.onCancelSuccessHandled()
-                        findNavController().getBackStackEntry(R.id.homeFragment)
-                            .savedStateHandle["membership_updated"] = true
-                        findNavController().popBackStack()
-                    }
-
-                    state.error?.let { error ->
-                        viewModel.onErrorShown()
-                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
+                }
+                launch {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            is MembershipEvent.NavigateToPayment -> {
+                                val nav = event.nav
+                                val action = MembershipFragmentDirections
+                                    .actionMembershipFragmentToMembershipPaymentFragment(
+                                        tierName = nav.tier.name,
+                                        amount = nav.amount,
+                                        isUpgrade = nav.isUpgrade,
+                                        isScheduled = nav.isScheduled,
+                                    )
+                                findNavController().navigate(action)
+                            }
+                            MembershipEvent.CancelSuccess -> {
+                                findNavController().getBackStackEntry(R.id.homeFragment)
+                                    .savedStateHandle["membership_updated"] = true
+                                findNavController().popBackStack()
+                            }
+                        }
                     }
                 }
             }
