@@ -28,6 +28,10 @@ data class BookingResultInfo(
     val timeLabel: String,
 )
 
+sealed class SlotsEvent {
+    data class ShowBookingResult(val info: BookingResultInfo) : SlotsEvent()
+}
+
 data class SlotsUiState(
     val facilityName: String = "",
     val dates: List<DateItem> = emptyList(),
@@ -35,6 +39,5 @@ data class SlotsUiState(
     val selectedSlot: DisplaySlot? = null,
     val isCancelling: Boolean = false,
     val isBookingFree: Boolean = false,
-    val bookingResultInfo: BookingResultInfo? = null,
     val error: AppError? = null,
 )

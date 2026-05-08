@@ -37,8 +37,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         setupFacilityCards()
         setupMembershipBanner()
         setupLogoutListener()
-        observeMembershipUpdates()
-        observeSessionUpdates()
         observeUiState()
     }
 
@@ -49,10 +47,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     findNavController().navigate(R.id.action_homeFragment_to_myBookingsFragment)
                     true
                 }
+
                 R.id.menu_logout -> {
                     showLogoutConfirmation()
                     true
                 }
+
                 else -> false
             }
         }
@@ -96,106 +96,106 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    private fun observeMembershipUpdates() {
-        findNavController().currentBackStackEntry
-            ?.savedStateHandle
-            ?.getLiveData<Boolean>("membership_updated")
-            ?.observe(viewLifecycleOwner) { updated ->
-                if (updated == true) {
-                    findNavController().currentBackStackEntry
-                        ?.savedStateHandle?.remove<Boolean>("membership_updated")
-                    viewModel.refreshProfile()
-                }
-            }
-    }
-
-    private fun observeSessionUpdates() {
-        findNavController().currentBackStackEntry
-            ?.savedStateHandle
-            ?.getLiveData<Boolean>("session_updated")
-            ?.observe(viewLifecycleOwner) { updated ->
-                if (updated == true) {
-                    findNavController().currentBackStackEntry
-                        ?.savedStateHandle?.remove<Boolean>("session_updated")
-                    viewModel.refreshProfile()
-                }
-            }
-    }
-
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    binding.progressBar.isVisible = state.isLoading
-                    updateSyncLabel(state.lastSyncedAt)
+                launch {
+                    viewModel.uiState.collect { state ->
+                        binding.progressBar.isVisible = state.isLoading
+                        updateSyncLabel(state.lastSyncedAt)
 
-                    state.userProfile?.let { profile ->
-                        val tier = profile.membershipTier
-                        val isActiveMember = tier != MembershipTier.NONE
-                        binding.membershipBanner.layoutNoMembership.isVisible = !isActiveMember
-                        binding.membershipBanner.layoutMembershipDetail.isVisible = isActiveMember
+                        state.userProfile?.let { profile ->
+                            val tier = profile.membershipTier
+                            val isActiveMember = tier != MembershipTier.NONE
+                            binding.membershipBanner.layoutNoMembership.isVisible = !isActiveMember
+                            binding.membershipBanner.layoutMembershipDetail.isVisible =
+                                isActiveMember
 
-                        // Premium gold border when member is active
-                        (binding.membershipBanner.root as? MaterialCardView)?.let { card ->
-                            card.strokeColor = ContextCompat.getColor(
-                                requireContext(),
-                                if (isActiveMember) R.color.accent_gold else R.color.outline,
-                            )
-                        }
-
-                        if (isActiveMember) {
-                            binding.membershipBanner.tvPlanName.text = tier.displayName
-                            val scheduled = profile.scheduledNextTier
-                            binding.membershipBanner.tvCancelledBadge.isVisible =
-                                profile.membershipCancelled && scheduled == null
-                            binding.membershipBanner.tvBadmintonRemaining.text =
-                                "🏸 ${profile.sessionsRemaining} / ${tier.sessionsPerMonth}"
-                            binding.membershipBanner.tvCricketRemaining.text =
-                                "🏏 ${profile.cricketSessionsRemaining} / ${tier.cricketSessionsPerMonth}"
-                            val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
-                            binding.membershipBanner.tvValidity.text = profile.membershipExpiry?.let { expiry ->
-                                if (profile.membershipCancelled && profile.scheduledNextTier == null) {
-                                    getString(R.string.membership_active_until, sdf.format(Date(expiry)))
-                                } else {
-                                    val startCal = Calendar.getInstance().apply { timeInMillis = expiry }
-                                    startCal.add(Calendar.DAY_OF_MONTH, -30)
-                                    "${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}"
-                                }
-                            } ?: ""
-
-                            val nextCycleText = when {
-                                scheduled != null && scheduled.ordinal > tier.ordinal ->
-                                    getString(R.string.membership_upgrading_next_cycle, scheduled.displayName)
-                                scheduled != null && scheduled.ordinal < tier.ordinal ->
-                                    getString(R.string.membership_downgrading_next_cycle, scheduled.displayName)
-                                scheduled != null ->
-                                    getString(R.string.membership_renewing_next_cycle, scheduled.displayName)
-                                !profile.membershipCancelled ->
-                                    getString(R.string.membership_renewing_next_cycle, tier.displayName)
-                                else -> null
+                            binding.membershipBanner.root.let { card ->
+                                card.strokeColor = ContextCompat.getColor(
+                                    requireContext(),
+                                    if (isActiveMember) R.color.accent_gold else R.color.outline,
+                                )
                             }
-                            binding.membershipBanner.tvNextCycle.isVisible = nextCycleText != null
-                            binding.membershipBanner.tvNextCycle.text = nextCycleText ?: ""
-                        }
 
-                        // Facility card session hints
-                        binding.cardBadminton.tvSessionsRemaining.isVisible = isActiveMember
-                        binding.cardCricket.tvSessionsRemaining.isVisible = isActiveMember
-                        if (isActiveMember) {
-                            val badmintonLeft = profile.sessionsRemaining
-                            binding.cardBadminton.tvSessionsRemaining.text =
-                                if (badmintonLeft > 0) "🏸 $badmintonLeft free sessions left"
-                                else "Badminton quota used this month"
-                            val cricketLeft = profile.cricketSessionsRemaining
-                            binding.cardCricket.tvSessionsRemaining.text =
-                                if (cricketLeft > 0) "🏏 $cricketLeft free sessions left"
-                                else "Cricket quota used this month"
+                            if (isActiveMember) {
+                                binding.membershipBanner.tvPlanName.text = tier.displayName
+                                val scheduled = profile.scheduledNextTier
+                                binding.membershipBanner.tvCancelledBadge.isVisible =
+                                    profile.membershipCancelled && scheduled == null
+                                binding.membershipBanner.tvBadmintonRemaining.text =
+                                    "🏸 ${profile.sessionsRemaining} / ${tier.sessionsPerMonth}"
+                                binding.membershipBanner.tvCricketRemaining.text =
+                                    "🏏 ${profile.cricketSessionsRemaining} / ${tier.cricketSessionsPerMonth}"
+                                val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
+                                binding.membershipBanner.tvValidity.text =
+                                    profile.membershipExpiry?.let { expiry ->
+                                        if (profile.membershipCancelled && profile.scheduledNextTier == null) {
+                                            getString(
+                                                R.string.membership_active_until,
+                                                sdf.format(Date(expiry))
+                                            )
+                                        } else {
+                                            val startCal = Calendar.getInstance()
+                                                .apply { timeInMillis = expiry }
+                                            startCal.add(Calendar.DAY_OF_MONTH, -30)
+                                            "${sdf.format(startCal.time)} → ${sdf.format(Date(expiry))}"
+                                        }
+                                    } ?: ""
+
+                                val nextCycleText = when {
+                                    scheduled != null && scheduled.ordinal > tier.ordinal ->
+                                        getString(
+                                            R.string.membership_upgrading_next_cycle,
+                                            scheduled.displayName
+                                        )
+
+                                    scheduled != null && scheduled.ordinal < tier.ordinal ->
+                                        getString(
+                                            R.string.membership_downgrading_next_cycle,
+                                            scheduled.displayName
+                                        )
+
+                                    scheduled != null ->
+                                        getString(
+                                            R.string.membership_renewing_next_cycle,
+                                            scheduled.displayName
+                                        )
+
+                                    !profile.membershipCancelled ->
+                                        getString(
+                                            R.string.membership_renewing_next_cycle,
+                                            tier.displayName
+                                        )
+
+                                    else -> null
+                                }
+                                binding.membershipBanner.tvNextCycle.isVisible =
+                                    nextCycleText != null
+                                binding.membershipBanner.tvNextCycle.text = nextCycleText ?: ""
+                            }
+
+                            binding.cardBadminton.tvSessionsRemaining.isVisible = isActiveMember
+                            binding.cardCricket.tvSessionsRemaining.isVisible = isActiveMember
+                            if (isActiveMember) {
+                                val badmintonLeft = profile.sessionsRemaining
+                                binding.cardBadminton.tvSessionsRemaining.text =
+                                    if (badmintonLeft > 0) "🏸 $badmintonLeft free sessions left"
+                                    else "Badminton quota used this month"
+                                val cricketLeft = profile.cricketSessionsRemaining
+                                binding.cardCricket.tvSessionsRemaining.text =
+                                    if (cricketLeft > 0) "🏏 $cricketLeft free sessions left"
+                                    else "Cricket quota used this month"
+                            }
                         }
                     }
-
-                    if (state.navigateToLogin) {
-                        viewModel.onNavigatedToLogin()
-                        findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
+                }
+                launch {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            HomeEvent.NavigateToLogin ->
+                                findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
+                        }
                     }
                 }
             }

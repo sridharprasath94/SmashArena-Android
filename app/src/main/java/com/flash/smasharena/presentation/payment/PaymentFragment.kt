@@ -67,25 +67,32 @@ class PaymentFragment : Fragment(R.layout.fragment_payment) {
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    binding.btnPay.isVisible = !state.isProcessing
-                    binding.progressPayment.isVisible = state.isProcessing
+                launch {
+                    viewModel.uiState.collect { state ->
+                        binding.btnPay.isVisible = !state.isProcessing
+                        binding.progressPayment.isVisible = state.isProcessing
 
-                    if (state.paymentSuccess) {
-                        findNavController().previousBackStackEntry?.savedStateHandle?.set(
-                            "booking_result",
-                            bundleOf(
-                                "facilityName" to args.facilityName,
-                                "dateLabel"    to args.dateLabel,
-                                "timeLabel"    to args.timeLabel,
-                            )
-                        )
-                        findNavController().popBackStack()
+                        state.error?.let { error ->
+                            viewModel.onErrorShown()
+                            Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
+                        }
                     }
-
-                    state.error?.let { error ->
-                        viewModel.onErrorShown()
-                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
+                }
+                launch {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            PaymentEvent.PaymentSuccess -> {
+                                findNavController().previousBackStackEntry?.savedStateHandle?.set(
+                                    "booking_result",
+                                    bundleOf(
+                                        "facilityName" to args.facilityName,
+                                        "dateLabel"    to args.dateLabel,
+                                        "timeLabel"    to args.timeLabel,
+                                    )
+                                )
+                                findNavController().popBackStack()
+                            }
+                        }
                     }
                 }
             }

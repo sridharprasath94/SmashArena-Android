@@ -30,13 +30,16 @@ data class NavigateToMembershipPayment(
     val isScheduled: Boolean = false,
 )
 
+sealed class MembershipEvent {
+    data class NavigateToPayment(val nav: NavigateToMembershipPayment) : MembershipEvent()
+    data object CancelSuccess : MembershipEvent()
+}
+
 data class MembershipUiState(
     val plans: List<PlanItem> = emptyList(),
     val currentTier: MembershipTier = MembershipTier.NONE,
     val isLoading: Boolean = true,
-    val navigateToPayment: NavigateToMembershipPayment? = null,
     val pendingAction: MembershipPendingAction? = null,
     val showCancelButton: Boolean = false,
-    val cancelSuccess: Boolean = false,
     val error: AppError? = null,
 )

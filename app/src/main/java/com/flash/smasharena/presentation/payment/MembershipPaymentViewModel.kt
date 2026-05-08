@@ -7,10 +7,13 @@ import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.domain.repository.UserRepository
 import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,6 +32,9 @@ class MembershipPaymentViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PaymentUiState())
     val uiState: StateFlow<PaymentUiState> = _uiState.asStateFlow()
 
+    private val _events = Channel<PaymentEvent>(Channel.BUFFERED)
+    val events: Flow<PaymentEvent> = _events.receiveAsFlow()
+
     fun selectMethod(method: PaymentMethod) =
         _uiState.update { it.copy(selectedMethod = method) }
 
@@ -44,7 +50,10 @@ class MembershipPaymentViewModel @Inject constructor(
                     else        -> userRepository.purchaseMembership(tier)
                 }
             }
-                .onSuccess { _uiState.update { it.copy(isProcessing = false, paymentSuccess = true) } }
+                .onSuccess {
+                    _uiState.update { it.copy(isProcessing = false) }
+                    _events.trySend(PaymentEvent.PaymentSuccess)
+                }
                 .onFailure { e -> _uiState.update { it.copy(isProcessing = false, error = e.toAppError()) } }
         }
     }
