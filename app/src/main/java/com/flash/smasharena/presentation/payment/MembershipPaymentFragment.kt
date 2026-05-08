@@ -25,6 +25,7 @@ class MembershipPaymentFragment : Fragment(R.layout.fragment_payment) {
     private val viewModel: MembershipPaymentViewModel by viewModels()
     private val binding by viewBinding(FragmentPaymentBinding::bind)
     private val args by navArgs<MembershipPaymentFragmentArgs>()
+    private val tier: MembershipTier by lazy { MembershipTier.valueOf(args.tierName) }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -37,13 +38,11 @@ class MembershipPaymentFragment : Fragment(R.layout.fragment_payment) {
     }
 
     private fun setupToolbar() {
-        val tier = MembershipTier.valueOf(args.tierName)
         binding.toolbar.title = "${tier.displayName} Plan"
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
     }
 
     private fun populateOrderSummary() {
-        val tier = MembershipTier.valueOf(args.tierName)
         binding.tvFacilityName.text = "${tier.displayName} Plan"
         binding.tvDatetime.text = when {
             args.isScheduled -> getString(R.string.membership_schedule_description, tier.sessionsPerMonth)
@@ -73,19 +72,26 @@ class MembershipPaymentFragment : Fragment(R.layout.fragment_payment) {
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    binding.btnPay.isVisible = !state.isProcessing
-                    binding.progressPayment.isVisible = state.isProcessing
+                launch {
+                    viewModel.uiState.collect { state ->
+                        binding.btnPay.isVisible = !state.isProcessing
+                        binding.progressPayment.isVisible = state.isProcessing
 
-                    if (state.paymentSuccess) {
-                        findNavController().getBackStackEntry(R.id.homeFragment)
-                            .savedStateHandle["membership_updated"] = true
-                        findNavController().popBackStack(R.id.homeFragment, false)
+                        state.error?.let { error ->
+                            viewModel.onErrorShown()
+                            Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
+                        }
                     }
-
-                    state.error?.let { error ->
-                        viewModel.onErrorShown()
-                        Snackbar.make(requireView(), error.toUserMessage(requireContext()), Snackbar.LENGTH_LONG).show()
+                }
+                launch {
+                    viewModel.events.collect { event ->
+                        when (event) {
+                            PaymentEvent.PaymentSuccess -> {
+                                findNavController().getBackStackEntry(R.id.homeFragment)
+                                    .savedStateHandle["membership_updated"] = true
+                                findNavController().popBackStack(R.id.homeFragment, false)
+                            }
+                        }
                     }
                 }
             }
