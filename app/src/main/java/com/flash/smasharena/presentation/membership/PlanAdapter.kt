@@ -29,6 +29,8 @@ class PlanAdapter(
                 ctx.getString(R.string.plan_badminton_sessions, item.badmintonSessions)
             binding.tvCricketSessions.text =
                 ctx.getString(R.string.plan_cricket_sessions, item.cricketSessions)
+            binding.tvFeatureEarlyAccess.text =
+                ctx.getString(R.string.plan_feature_early_access, item.tier.bookingDaysAhead)
 
             // Visual hierarchy: selected > current plan > scheduled next > unselected
             val dp = ctx.resources.displayMetrics.density

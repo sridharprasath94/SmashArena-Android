@@ -60,13 +60,13 @@ class SlotsViewModel @Inject constructor(
         val dates = (0..13).mapNotNull { offset ->
             val dateString = DateTimeUtils.dateWithOffset(offset)
             val daysUntil = DateTimeUtils.daysUntil(dateString)
-            if (daysUntil == 0 && currentHour >= 22) return@mapNotNull null
+            if (!BookingWindowUtils.isDateBrowsable(daysUntil, tier, currentHour)) return@mapNotNull null
             DateItem(
                 dateString = dateString,
                 dayLabel = DateTimeUtils.dayLabel(dateString),
                 dayNumber = DateTimeUtils.dayNumber(dateString),
                 isSelected = false,
-                isBrowsable = BookingWindowUtils.isDateBrowsable(daysUntil, tier, currentHour),
+                isBrowsable = true,
             )
         }
         _uiState.update { it.copy(dates = dates) }
