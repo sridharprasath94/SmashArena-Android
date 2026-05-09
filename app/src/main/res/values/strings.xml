@@ -112,6 +112,13 @@
     <string name="plan_current">Current Plan</string>
     <string name="plan_upgrade_btn">Upgrade This Cycle</string>
     <string name="plan_upgrade_next_cycle_btn">Upgrade Next Cycle</string>
+    <string name="plan_downgrade_next_cycle_btn">Downgrade Next Cycle</string>
+    <string name="plan_renew_membership_btn">Renew Membership</string>
+    <string name="plan_continue_next_cycle_btn">Continue %1$s Next Cycle</string>
+    <string name="plan_price_per_month">₹%1$s / month</string>
+    <string name="plan_charge_upgrade">You\'ll be charged ₹%1$s to upgrade to %2$s immediately.</string>
+    <string name="plan_charge_purchase">You\'ll be charged ₹%1$s for %2$s membership.</string>
+    <string name="plan_upgrade_auto_renew_detail">Your upgraded membership renews automatically.</string>
     <string name="membership_auto_renew_off">Auto-renew off</string>
     <string name="membership_active_until">Active until %1$s</string>
     <string name="plan_expires">Expires %1$s</string>

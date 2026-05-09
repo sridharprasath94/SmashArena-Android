@@ -109,12 +109,12 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
                                     val tierName = action.item.tier.displayName
                                     val amountStr = "%,d".format(action.amount)
                                     val message = if (action.isUpgrade) {
-                                        "You'll be charged ₹$amountStr to upgrade to $tierName immediately."
+                                        getString(R.string.plan_charge_upgrade, amountStr, tierName)
                                     } else {
-                                        "You'll be charged ₹$amountStr for $tierName membership."
+                                        getString(R.string.plan_charge_purchase, amountStr, tierName)
                                     }
                                     val detail = if (action.resumesAutoRenew) {
-                                        "Your upgraded membership renews automatically."
+                                        getString(R.string.plan_upgrade_auto_renew_detail)
                                     } else null
                                     ConfirmationDialog.selectMembership(message, detail)
                                         .show(childFragmentManager, "confirm_select_membership")
