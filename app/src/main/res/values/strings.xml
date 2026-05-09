@@ -97,7 +97,7 @@
     <!-- Membership screen -->
     <string name="membership_title">Membership Plans</string>
     <string name="membership_headline">Book smarter, play more.</string>
-    <string name="membership_subheadline">Members get early access to slots — up to 7 days ahead based on your plan.</string>
+    <string name="membership_subheadline">Without a membership, you can book up to 3 days ahead. Upgrade to book further in advance.</string>
     <string name="perk_early_access">Early slot\naccess</string>
     <string name="perk_cricket_access">Cricket nets\nincluded</string>
     <string name="perk_save_more">Save more\nper session</string>
@@ -105,13 +105,20 @@
     <string name="plan_badminton_sessions">🏸  %1$d badminton sessions / month</string>
     <string name="plan_cricket_sessions">🏏  %1$d free cricket net sessions / month</string>
     <string name="plan_recommended">BEST VALUE</string>
-    <string name="plan_feature_early_access">✓  Early booking window (5–7 days ahead)</string>
+    <string name="plan_feature_early_access">✓  Book %1$d days ahead</string>
     <string name="plan_feature_priority">✓  Priority slot selection for both courts</string>
     <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
     <string name="plan_get_started">Choose Plan</string>
     <string name="plan_current">Current Plan</string>
-    <string name="plan_upgrade_btn">Upgrade</string>
+    <string name="plan_upgrade_btn">Upgrade This Cycle</string>
     <string name="plan_upgrade_next_cycle_btn">Upgrade Next Cycle</string>
+    <string name="plan_downgrade_next_cycle_btn">Downgrade Next Cycle</string>
+    <string name="plan_renew_membership_btn">Renew Membership</string>
+    <string name="plan_continue_next_cycle_btn">Continue %1$s Next Cycle</string>
+    <string name="plan_price_per_month">₹%1$s / month</string>
+    <string name="plan_charge_upgrade">You\'ll be charged ₹%1$s to upgrade to %2$s immediately.</string>
+    <string name="plan_charge_purchase">You\'ll be charged ₹%1$s for %2$s membership.</string>
+    <string name="plan_upgrade_auto_renew_detail">Your upgraded membership renews automatically.</string>
     <string name="membership_auto_renew_off">Auto-renew off</string>
     <string name="membership_active_until">Active until %1$s</string>
     <string name="plan_expires">Expires %1$s</string>

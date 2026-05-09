@@ -5,9 +5,10 @@ enum class MembershipTier(
     val priceRupees: Int,
     val sessionsPerMonth: Int,
     val cricketSessionsPerMonth: Int,
+    val bookingDaysAhead: Int,
 ) {
-    NONE("No membership", 0, 0, 0),
-    RALLY("Rally", 1_000, 8, 2),
-    SMASH("Smash", 1_500, 12, 3),
-    ACE("Ace", 2_000, 16, 4),
+    NONE("No membership", 0, 0, 0, 3),
+    RALLY("Rally", 1_000, 8, 2, 5),
+    SMASH("Smash", 1_500, 12, 3, 6),
+    ACE("Ace", 2_000, 16, 4, 7),
 }

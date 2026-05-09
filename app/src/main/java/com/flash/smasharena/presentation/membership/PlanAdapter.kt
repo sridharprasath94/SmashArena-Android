@@ -24,11 +24,13 @@ class PlanAdapter(
 
             binding.tvBadgeRecommended.isVisible = item.isRecommended
             binding.tvPlanName.text = item.tier.displayName
-            binding.tvPrice.text = item.price
+            binding.tvPrice.text = ctx.getString(R.string.plan_price_per_month, "%,d".format(item.tier.priceRupees))
             binding.tvBadmintonSessions.text =
                 ctx.getString(R.string.plan_badminton_sessions, item.badmintonSessions)
             binding.tvCricketSessions.text =
                 ctx.getString(R.string.plan_cricket_sessions, item.cricketSessions)
+            binding.tvFeatureEarlyAccess.text =
+                ctx.getString(R.string.plan_feature_early_access, item.tier.bookingDaysAhead)
 
             // Visual hierarchy: selected > current plan > scheduled next > unselected
             val dp = ctx.resources.displayMetrics.density
@@ -70,23 +72,35 @@ class PlanAdapter(
             val showButton = item.isSelected || item.isCurrentPlan || item.isScheduledNext
             binding.btnSelect.isVisible = showButton
 
-            // Secondary "Upgrade Next Cycle" button — only when selected + upgradeable + not already scheduled
-            binding.btnUpgradeNextCycle.isVisible =
-                item.isSelected && item.upgradePrice != null && !item.isScheduledNext
-            if (item.isSelected && item.upgradePrice != null && !item.isScheduledNext) {
-                binding.btnUpgradeNextCycle.text = ctx.getString(R.string.plan_upgrade_next_cycle_btn)
-                binding.btnUpgradeNextCycle.setOnClickListener { onScheduleNextCycle(item) }
+            // Secondary button: "Upgrade Next Cycle" when selected+upgradeable, or next-cycle management on current plan
+            val showUpgradeNextCycle = item.isSelected && item.upgradePrice != null && !item.isScheduledNext
+            val showNextCycleManage = item.isCurrentPlan && item.nextCycleCta != null
+            binding.btnUpgradeNextCycle.isVisible = showUpgradeNextCycle || showNextCycleManage
+            when {
+                showNextCycleManage -> {
+                    binding.btnUpgradeNextCycle.text = when (item.nextCycleCta) {
+                        NextCycleCtaType.RENEW_MEMBERSHIP -> ctx.getString(R.string.plan_renew_membership_btn)
+                        NextCycleCtaType.CONTINUE_NEXT_CYCLE -> ctx.getString(R.string.plan_continue_next_cycle_btn, item.tier.displayName)
+                    }
+                    binding.btnUpgradeNextCycle.setOnClickListener { onScheduleNextCycle(item) }
+                }
+                showUpgradeNextCycle -> {
+                    binding.btnUpgradeNextCycle.text = ctx.getString(R.string.plan_upgrade_next_cycle_btn)
+                    binding.btnUpgradeNextCycle.setOnClickListener { onScheduleNextCycle(item) }
+                }
             }
 
             when {
                 item.isSelected && item.scheduledCta != null -> {
-                    binding.btnSelect.text = item.scheduledCta
+                    binding.btnSelect.text = when (item.scheduledCta) {
+                        ScheduledCtaType.DOWNGRADE_NEXT_CYCLE -> ctx.getString(R.string.plan_downgrade_next_cycle_btn)
+                    }
                     binding.btnSelect.isEnabled = true
                     binding.btnSelect.alpha = 1f
                     binding.btnSelect.setOnClickListener { onGetStarted(item) }
                 }
                 item.isCurrentPlan && item.isCancelled -> {
-                    binding.btnSelect.text = item.expiryText ?: ctx.getString(R.string.plan_current)
+                    binding.btnSelect.text = item.expiryDateLabel?.let { ctx.getString(R.string.plan_expires, it) } ?: ctx.getString(R.string.plan_current)
                     binding.btnSelect.isEnabled = false
                     binding.btnSelect.alpha = 0.55f
                 }

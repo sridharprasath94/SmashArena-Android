@@ -3,14 +3,21 @@ package com.flash.smasharena.presentation.membership
 import com.flash.smasharena.domain.model.AppError
 import com.flash.smasharena.domain.model.MembershipTier
 
+enum class ScheduledCtaType { DOWNGRADE_NEXT_CYCLE }
+enum class NextCycleCtaType { RENEW_MEMBERSHIP, CONTINUE_NEXT_CYCLE }
+
 sealed class MembershipPendingAction {
-    data class SelectPlan(val item: PlanItem, val amount: Int, val isUpgrade: Boolean) : MembershipPendingAction()
+    data class SelectPlan(
+        val item: PlanItem,
+        val amount: Int,
+        val isUpgrade: Boolean,
+        val resumesAutoRenew: Boolean = false,
+    ) : MembershipPendingAction()
     data class SchedulePlan(val tier: MembershipTier) : MembershipPendingAction()
 }
 
 data class PlanItem(
     val tier: MembershipTier,
-    val price: String,
     val badmintonSessions: Int,
     val cricketSessions: Int,
     val isCurrentPlan: Boolean,
@@ -18,9 +25,10 @@ data class PlanItem(
     val isSelected: Boolean,
     val upgradePrice: Int? = null,
     val isCancelled: Boolean = false,
-    val expiryText: String? = null,
+    val expiryDateLabel: String? = null,
     val isScheduledNext: Boolean = false,
-    val scheduledCta: String? = null,
+    val scheduledCta: ScheduledCtaType? = null,
+    val nextCycleCta: NextCycleCtaType? = null,
 )
 
 data class NavigateToMembershipPayment(

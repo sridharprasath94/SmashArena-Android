@@ -63,12 +63,12 @@ class MembershipViewModel @Inject constructor(
 
     fun onGetStarted(item: PlanItem) {
         val isDowngrade = item.tier.ordinal < currentTier.ordinal
-        val action = if (isCancelled || isDowngrade) {
+        val isUpgrade = item.upgradePrice != null
+        val action = if (isDowngrade || (isCancelled && !isUpgrade)) {
             MembershipPendingAction.SchedulePlan(item.tier)
         } else {
-            val isUpgrade = item.upgradePrice != null
             val amount = item.upgradePrice ?: item.tier.priceRupees
-            MembershipPendingAction.SelectPlan(item, amount, isUpgrade)
+            MembershipPendingAction.SelectPlan(item, amount, isUpgrade, resumesAutoRenew = isCancelled && isUpgrade)
         }
         _uiState.update { it.copy(pendingAction = action) }
     }
@@ -119,24 +119,28 @@ class MembershipViewModel @Inject constructor(
 
     private fun buildPlans(): List<PlanItem> {
         val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
-        val expiryLabel = membershipExpiry?.let { sdf.format(Date(it)) }
+        val expiryDateLabel = membershipExpiry?.let { sdf.format(Date(it)) }
         return listOf(MembershipTier.RALLY, MembershipTier.SMASH, MembershipTier.ACE).map { tier ->
             val isCurrentPlan = tier == currentTier
-            val upgradePrice = if (!isCancelled && tier.ordinal > currentTier.ordinal && currentTier != MembershipTier.NONE) {
+            val upgradePrice = if (tier.ordinal > currentTier.ordinal && currentTier != MembershipTier.NONE) {
                 tier.priceRupees - currentTier.priceRupees
             } else null
             val isSelected = tier == selectedTier
             val isScheduledNext = scheduledNextTier == tier && !isCurrentPlan
-            val scheduledCta: String? = when {
+            val scheduledCta: ScheduledCtaType? = when {
                 !isSelected || isScheduledNext -> null
-                isCancelled && tier == currentTier -> null
-                isCancelled -> "Schedule for next cycle"
-                tier.ordinal < currentTier.ordinal -> "Downgrade for Next Cycle"
+                isCancelled && (isCurrentPlan || upgradePrice != null) -> null
+                tier.ordinal < currentTier.ordinal -> ScheduledCtaType.DOWNGRADE_NEXT_CYCLE
+                else -> null
+            }
+            val nextCycleCta: NextCycleCtaType? = when {
+                !isCurrentPlan -> null
+                isCancelled && scheduledNextTier == null -> NextCycleCtaType.RENEW_MEMBERSHIP
+                scheduledNextTier != null && scheduledNextTier != tier -> NextCycleCtaType.CONTINUE_NEXT_CYCLE
                 else -> null
             }
             PlanItem(
                 tier = tier,
-                price = "₹${"%,d".format(tier.priceRupees)} / month",
                 badmintonSessions = tier.sessionsPerMonth,
                 cricketSessions = tier.cricketSessionsPerMonth,
                 isCurrentPlan = isCurrentPlan,
@@ -144,9 +148,10 @@ class MembershipViewModel @Inject constructor(
                 isSelected = isSelected,
                 upgradePrice = upgradePrice,
                 isCancelled = isCancelled && isCurrentPlan,
-                expiryText = if (isCancelled && isCurrentPlan && expiryLabel != null && scheduledNextTier == null) "Expires $expiryLabel" else null,
+                expiryDateLabel = if (isCancelled && isCurrentPlan && expiryDateLabel != null && scheduledNextTier == null) expiryDateLabel else null,
                 isScheduledNext = isScheduledNext,
                 scheduledCta = scheduledCta,
+                nextCycleCta = nextCycleCta,
             )
         }
     }

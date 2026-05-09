@@ -176,8 +176,8 @@ class ConfirmationDialog : DialogFragment(R.layout.dialog_confirmation) {
         fun limitReached(message: String) =
             build(Type.INFO, "", message, null)
 
-        fun selectMembership(message: String) =
-            build(Type.SELECT_MEMBERSHIP, REQUEST_SELECT_MEMBERSHIP, message, null)
+        fun selectMembership(message: String, detail: String? = null) =
+            build(Type.SELECT_MEMBERSHIP, REQUEST_SELECT_MEMBERSHIP, message, detail)
 
         fun scheduleMembership(tierDisplayName: String) =
             build(
