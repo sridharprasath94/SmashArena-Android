@@ -4,7 +4,12 @@ import com.flash.smasharena.domain.model.AppError
 import com.flash.smasharena.domain.model.MembershipTier
 
 sealed class MembershipPendingAction {
-    data class SelectPlan(val item: PlanItem, val amount: Int, val isUpgrade: Boolean) : MembershipPendingAction()
+    data class SelectPlan(
+        val item: PlanItem,
+        val amount: Int,
+        val isUpgrade: Boolean,
+        val resumesAutoRenew: Boolean = false,
+    ) : MembershipPendingAction()
     data class SchedulePlan(val tier: MembershipTier) : MembershipPendingAction()
 }
 

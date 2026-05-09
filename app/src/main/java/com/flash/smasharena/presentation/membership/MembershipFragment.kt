@@ -113,7 +113,10 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
                                     } else {
                                         "You'll be charged ₹$amountStr for $tierName membership."
                                     }
-                                    ConfirmationDialog.selectMembership(message)
+                                    val detail = if (action.resumesAutoRenew) {
+                                        "Your upgraded membership renews automatically."
+                                    } else null
+                                    ConfirmationDialog.selectMembership(message, detail)
                                         .show(childFragmentManager, "confirm_select_membership")
                                 }
                                 is MembershipPendingAction.SchedulePlan -> {
