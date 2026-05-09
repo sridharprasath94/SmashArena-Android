@@ -110,7 +110,7 @@
     <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
     <string name="plan_get_started">Choose Plan</string>
     <string name="plan_current">Current Plan</string>
-    <string name="plan_upgrade_btn">Upgrade</string>
+    <string name="plan_upgrade_btn">Upgrade This Cycle</string>
     <string name="plan_upgrade_next_cycle_btn">Upgrade Next Cycle</string>
     <string name="membership_auto_renew_off">Auto-renew off</string>
     <string name="membership_active_until">Active until %1$s</string>

@@ -26,6 +26,7 @@ data class PlanItem(
     val expiryText: String? = null,
     val isScheduledNext: Boolean = false,
     val scheduledCta: String? = null,
+    val nextCycleCta: String? = null,
 )
 
 data class NavigateToMembershipPayment(

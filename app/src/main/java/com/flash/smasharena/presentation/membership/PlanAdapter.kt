@@ -72,12 +72,19 @@ class PlanAdapter(
             val showButton = item.isSelected || item.isCurrentPlan || item.isScheduledNext
             binding.btnSelect.isVisible = showButton
 
-            // Secondary "Upgrade Next Cycle" button — only when selected + upgradeable + not already scheduled
-            binding.btnUpgradeNextCycle.isVisible =
-                item.isSelected && item.upgradePrice != null && !item.isScheduledNext
-            if (item.isSelected && item.upgradePrice != null && !item.isScheduledNext) {
-                binding.btnUpgradeNextCycle.text = ctx.getString(R.string.plan_upgrade_next_cycle_btn)
-                binding.btnUpgradeNextCycle.setOnClickListener { onScheduleNextCycle(item) }
+            // Secondary button: "Upgrade Next Cycle" when selected+upgradeable, or next-cycle management on current plan
+            val showUpgradeNextCycle = item.isSelected && item.upgradePrice != null && !item.isScheduledNext
+            val showNextCycleManage = item.isCurrentPlan && item.nextCycleCta != null
+            binding.btnUpgradeNextCycle.isVisible = showUpgradeNextCycle || showNextCycleManage
+            when {
+                showNextCycleManage -> {
+                    binding.btnUpgradeNextCycle.text = item.nextCycleCta
+                    binding.btnUpgradeNextCycle.setOnClickListener { onScheduleNextCycle(item) }
+                }
+                showUpgradeNextCycle -> {
+                    binding.btnUpgradeNextCycle.text = ctx.getString(R.string.plan_upgrade_next_cycle_btn)
+                    binding.btnUpgradeNextCycle.setOnClickListener { onScheduleNextCycle(item) }
+                }
             }
 
             when {

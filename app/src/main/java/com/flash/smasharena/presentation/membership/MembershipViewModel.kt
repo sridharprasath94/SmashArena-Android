@@ -130,7 +130,13 @@ class MembershipViewModel @Inject constructor(
             val scheduledCta: String? = when {
                 !isSelected || isScheduledNext -> null
                 isCancelled && (isCurrentPlan || upgradePrice != null) -> null
-                tier.ordinal < currentTier.ordinal -> "Downgrade for Next Cycle"
+                tier.ordinal < currentTier.ordinal -> "Downgrade Next Cycle"
+                else -> null
+            }
+            val nextCycleCta: String? = when {
+                !isCurrentPlan -> null
+                isCancelled && scheduledNextTier == null -> "Renew Membership"
+                scheduledNextTier != null && scheduledNextTier != tier -> "Continue ${tier.displayName} Next Cycle"
                 else -> null
             }
             PlanItem(
@@ -146,6 +152,7 @@ class MembershipViewModel @Inject constructor(
                 expiryText = if (isCancelled && isCurrentPlan && expiryLabel != null && scheduledNextTier == null) "Expires $expiryLabel" else null,
                 isScheduledNext = isScheduledNext,
                 scheduledCta = scheduledCta,
+                nextCycleCta = nextCycleCta,
             )
         }
     }
