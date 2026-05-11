@@ -120,7 +120,7 @@ class MembershipFragment : Fragment(R.layout.fragment_membership) {
                                         .show(childFragmentManager, "confirm_select_membership")
                                 }
                                 is MembershipPendingAction.SchedulePlan -> {
-                                    ConfirmationDialog.scheduleMembership(action.tier.displayName)
+                                    ConfirmationDialog.scheduleMembership(requireContext(), action.tier.displayName)
                                         .show(childFragmentManager, "confirm_schedule_membership")
                                 }
                             }
