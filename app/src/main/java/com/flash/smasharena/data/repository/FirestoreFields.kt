@@ -20,4 +20,7 @@ internal object SlotFields {
     const val BOOKED_BY = "bookedBy"
     const val BOOKED_AT = "bookedAt"
     const val IS_FREE_MEMBERSHIP = "isFreeMembership"
+    const val CANCELLED_AT = "cancelledAt"
+    const val STATUS_BOOKED = "booked"
+    const val STATUS_CANCELLED = "cancelled"
 }
