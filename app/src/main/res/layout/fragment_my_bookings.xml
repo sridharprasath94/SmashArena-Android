@@ -25,34 +25,25 @@
             app:titleTextColor="@color/text_primary"
             app:titleTextAppearance="@style/TextAppearance.SmashArena.ToolbarTitle" />
 
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/background"
+            app:tabGravity="fill"
+            app:tabMode="fixed"
+            app:tabSelectedTextColor="@color/accent_green"
+            app:tabTextColor="@color/text_secondary"
+            app:tabIndicatorColor="@color/accent_green"
+            app:tabIndicatorHeight="2dp"
+            app:tabRippleColor="@android:color/transparent" />
+
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_bookings"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/view_pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="16dp"
-        android:clipToPadding="false"
-        android:visibility="gone"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-
-    <TextView
-        android:id="@+id/tv_empty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/my_bookings_empty"
-        android:textColor="@color/text_secondary"
-        android:textSize="15sp"
-        android:visibility="gone" />
-
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
