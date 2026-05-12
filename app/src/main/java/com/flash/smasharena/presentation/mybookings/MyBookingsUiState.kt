@@ -12,17 +12,35 @@ data class BookingItem(
     val timeLabel: String,
     val isFreeMembership: Boolean = false,
     val isExpired: Boolean = false,
+    val isOngoing: Boolean = false,
 )
 
-sealed class BookingListItem {
-    data class Header(val label: String) : BookingListItem()
-    data class Booking(val item: BookingItem) : BookingListItem()
+sealed class PastTimelineItem {
+    data class YearHeader(val year: Int, val isExpanded: Boolean) : PastTimelineItem()
+    data class MonthHeader(val year: Int, val month: Int, val label: String, val isExpanded: Boolean) : PastTimelineItem()
+    data class BookingEntry(val item: BookingItem) : PastTimelineItem()
+    object ShowMore : PastTimelineItem()
 }
 
+data class CancelledBookingItem(
+    val docId: String,
+    val facilityDisplayName: String,
+    val displayDate: String,
+    val timeLabel: String,
+    val cancelledDisplayDate: String,
+    val isSelected: Boolean = false,
+)
+
 data class MyBookingsUiState(
-    val listItems: List<BookingListItem> = emptyList(),
-    val isLoading: Boolean = true,
+    val upcomingItems: List<BookingItem> = emptyList(),
+    val isUpcomingLoading: Boolean = true,
     val cancellingDocId: String? = null,
     val cancelSuccess: Boolean = false,
+    val pastTimelineItems: List<PastTimelineItem> = emptyList(),
+    val isPastLoading: Boolean = false,
+    val cancelledItems: List<CancelledBookingItem> = emptyList(),
+    val isCancelledLoading: Boolean = true,
+    val selectedCancelledIds: Set<String> = emptySet(),
+    val isDeletingCancelled: Boolean = false,
     val error: AppError? = null,
 )

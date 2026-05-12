@@ -10,6 +10,7 @@ object DateTimeUtils {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val dayOfWeekFormat = SimpleDateFormat("EEE", Locale.getDefault())
     private val displayDateFormat = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+    private val monthNameFormat = SimpleDateFormat("MMMM", Locale.getDefault())
 
     fun today(): String = dateFormat.format(Date())
 
@@ -44,4 +45,21 @@ object DateTimeUtils {
         }.timeInMillis
         return ((slotDate - todayStart) / (1000L * 60 * 60 * 24)).toInt()
     }
+
+    /** Returns "yyyy-MM-dd" string for N months ago from today. */
+    fun monthsAgo(months: Int): String {
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MONTH, -months)
+        return dateFormat.format(cal.time)
+    }
+
+    /** Returns the full month name for a 1-based month number (1 = January). */
+    fun monthName(month: Int): String {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.MONTH, month - 1)
+        return monthNameFormat.format(cal.time)
+    }
+
+    /** Formats an epoch-millisecond timestamp as "Mon, 5 May". */
+    fun displayEpochDate(epochMs: Long): String = displayDateFormat.format(Date(epochMs))
 }

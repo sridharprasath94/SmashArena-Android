@@ -7,6 +7,7 @@ data class Slot(
     val status: SlotStatus,
     val bookedBy: String? = null,
     val isFreeMembership: Boolean = false,
+    val cancelledAtMs: Long? = null,
 ) {
     val docId: String get() = "${facilityId}_${date}_${hour}"
     val timeLabel: String get() = String.format("%02d:00 – %02d:00", hour, hour + 1)

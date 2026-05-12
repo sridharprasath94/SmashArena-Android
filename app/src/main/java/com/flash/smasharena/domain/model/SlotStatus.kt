@@ -6,4 +6,5 @@ enum class SlotStatus {
     BOOKED,       // taken by someone else
     LOCKED,       // outside booking window or in the past
     MY_BOOKING,   // booked by the current signed-in user
+    CANCELLED,    // cancelled — treated as available for rebooking in slot picker
 }

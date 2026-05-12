@@ -58,6 +58,12 @@
     <string name="dialog_cancel_booking_confirm">Cancel booking</string>
     <string name="dialog_keep">Keep it</string>
     <string name="booking_cancel">Cancel</string>
+    <string name="dialog_delete_cancelled_title">Delete cancelled booking?</string>
+    <string name="dialog_delete_cancelled_subtitle">This booking will be removed from your history</string>
+    <string name="dialog_delete_multiple_cancelled_title">Delete %1$d cancelled bookings?</string>
+    <string name="dialog_delete_multiple_cancelled_subtitle">Selected bookings will be removed from your history</string>
+    <string name="dialog_schedule_membership_title">Schedule %1$s?</string>
+    <string name="dialog_schedule_membership_subtitle">%1$s will activate at the start of your next billing cycle. No charge now.</string>
 
     <!-- Payment -->
     <string name="payment_order_summary">Order Summary</string>
@@ -90,6 +96,16 @@
 
     <!-- My bookings -->
     <string name="my_bookings_empty">You don\'t have any upcoming bookings.</string>
+    <string name="tab_upcoming">Upcoming</string>
+    <string name="tab_past">Past</string>
+    <string name="tab_cancelled">Cancelled</string>
+    <string name="past_bookings_empty">No past bookings yet.</string>
+    <string name="cancelled_bookings_empty">No cancelled bookings.</string>
+    <string name="btn_show_more">Show more</string>
+    <string name="btn_select">Select</string>
+    <string name="btn_delete">Delete</string>
+    <string name="cancelled_on">Cancelled %1$s</string>
+    <string name="selected_count">%1$d selected</string>
 
     <!-- Membership banner -->
     <string name="membership_banner_none">No membership · View plans →</string>
@@ -132,6 +148,7 @@
     <string name="dialog_confirm_membership_title">Confirm Membership?</string>
     <string name="dialog_select_membership_confirm">Continue to Payment</string>
     <string name="dialog_schedule_membership_confirm">Schedule</string>
+    <string name="dialog_delete_confirm">Delete</string>
     <string name="membership_purchase_description">Monthly membership · %1$d sessions/month</string>
     <string name="membership_upgrade_description">Upgrade · %1$d sessions/month</string>
     <string name="membership_schedule_description">Scheduled for next cycle · %1$d sessions/month</string>

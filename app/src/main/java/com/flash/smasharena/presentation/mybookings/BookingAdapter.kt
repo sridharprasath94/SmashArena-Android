@@ -1,8 +1,11 @@
 package com.flash.smasharena.presentation.mybookings
 
+import android.animation.ValueAnimator
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.TextView
+import android.view.animation.LinearInterpolator
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -12,61 +15,98 @@ import com.flash.smasharena.databinding.ItemBookingBinding
 
 class BookingAdapter(
     private val onCancelClicked: (BookingItem) -> Unit,
-) : ListAdapter<BookingListItem, RecyclerView.ViewHolder>(DiffCallback) {
+) : ListAdapter<BookingItem, BookingAdapter.ViewHolder>(DiffCallback) {
 
     var cancellingDocId: String? = null
 
-    inner class BookingViewHolder(private val binding: ItemBookingBinding) :
+    inner class ViewHolder(private val binding: ItemBookingBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
+        private var strokeAnimator: ValueAnimator? = null
 
         fun bind(item: BookingItem) {
             binding.tvFacilityName.text = item.facilityDisplayName
             binding.tvDate.text = item.displayDate
             binding.tvTime.text = item.timeLabel
-            binding.root.alpha = if (item.isExpired) 0.5f else 1f
 
             val isCancelling = item.docId == cancellingDocId
-            binding.layoutActions.isVisible = !item.isExpired
+
+            when {
+                item.isOngoing -> bindOngoing(isCancelling, item)
+                item.isExpired -> bindExpired()
+                else -> bindNormal(isCancelling, item)
+            }
+        }
+
+        private fun bindOngoing(isCancelling: Boolean, item: BookingItem) {
+            binding.root.alpha = 1f
+            binding.tvLiveBadge.isVisible = true
+            binding.layoutActions.isVisible = false
+
+            val colorGreen = ContextCompat.getColor(binding.root.context, R.color.accent_green)
+            val colorDim = Color.argb(60, Color.red(colorGreen), Color.green(colorGreen), Color.blue(colorGreen))
+
+            strokeAnimator?.cancel()
+            strokeAnimator = ValueAnimator.ofArgb(colorGreen, colorDim).apply {
+                duration = 1200
+                repeatMode = ValueAnimator.REVERSE
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                addUpdateListener { binding.root.strokeColor = it.animatedValue as Int }
+                start()
+            }
+            binding.root.cardElevation = binding.root.context.resources.getDimension(R.dimen.card_elevation_ongoing)
+        }
+
+        private fun bindExpired() {
+            cancelAnimation()
+            binding.root.alpha = 0.45f
+            binding.tvLiveBadge.isVisible = false
+            binding.layoutActions.isVisible = false
+            resetCardStyle()
+        }
+
+        private fun bindNormal(isCancelling: Boolean, item: BookingItem) {
+            cancelAnimation()
+            binding.root.alpha = 1f
+            binding.tvLiveBadge.isVisible = false
+            binding.layoutActions.isVisible = true
             binding.btnCancel.isEnabled = !isCancelling
             binding.btnCancel.text = if (isCancelling) "Cancelling…" else "Cancel"
             binding.btnCancel.setOnClickListener { onCancelClicked(item) }
+            resetCardStyle()
+        }
+
+        private fun cancelAnimation() {
+            strokeAnimator?.cancel()
+            strokeAnimator = null
+        }
+
+        private fun resetCardStyle() {
+            val colorOutline = ContextCompat.getColor(binding.root.context, R.color.outline)
+            binding.root.strokeColor = colorOutline
+            binding.root.cardElevation = 0f
+        }
+
+        fun recycle() {
+            cancelAnimation()
+            resetCardStyle()
         }
     }
 
-    inner class HeaderViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
-
-    override fun getItemViewType(position: Int): Int = when (getItem(position)) {
-        is BookingListItem.Header  -> TYPE_HEADER
-        is BookingListItem.Booking -> TYPE_BOOKING
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val binding = ItemBookingBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return ViewHolder(binding)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == TYPE_HEADER) {
-            HeaderViewHolder(inflater.inflate(R.layout.item_booking_header, parent, false) as TextView)
-        } else {
-            BookingViewHolder(ItemBookingBinding.inflate(inflater, parent, false))
-        }
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(getItem(position))
+
+    override fun onViewRecycled(holder: ViewHolder) {
+        holder.recycle()
     }
 
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        when (val item = getItem(position)) {
-            is BookingListItem.Header  -> (holder as HeaderViewHolder).textView.text = item.label
-            is BookingListItem.Booking -> (holder as BookingViewHolder).bind(item.item)
-        }
-    }
-
-    private object DiffCallback : DiffUtil.ItemCallback<BookingListItem>() {
-        override fun areItemsTheSame(a: BookingListItem, b: BookingListItem): Boolean = when {
-            a is BookingListItem.Header  && b is BookingListItem.Header  -> a.label == b.label
-            a is BookingListItem.Booking && b is BookingListItem.Booking -> a.item.docId == b.item.docId
-            else -> false
-        }
-        override fun areContentsTheSame(a: BookingListItem, b: BookingListItem) = a == b
-    }
-
-    companion object {
-        private const val TYPE_HEADER  = 0
-        private const val TYPE_BOOKING = 1
+    private object DiffCallback : DiffUtil.ItemCallback<BookingItem>() {
+        override fun areItemsTheSame(a: BookingItem, b: BookingItem) = a.docId == b.docId
+        override fun areContentsTheSame(a: BookingItem, b: BookingItem) = a == b
     }
 }

@@ -30,6 +30,7 @@ class SlotAdapter(
                     SlotStatus.MEMBER_HOLD -> ctx.getString(R.string.slot_member_hold)
                     SlotStatus.LOCKED      -> ctx.getString(R.string.slot_locked)
                     SlotStatus.MY_BOOKING  -> ctx.getString(R.string.slot_my_booking)
+                    SlotStatus.CANCELLED   -> ctx.getString(R.string.slot_available)
                 }
             }
 
@@ -43,6 +44,7 @@ class SlotAdapter(
                         SlotStatus.MEMBER_HOLD -> R.color.slot_member_hold
                         SlotStatus.LOCKED      -> R.color.slot_locked
                         SlotStatus.MY_BOOKING  -> if (item.isSelected) R.color.slot_my_booking_selected else R.color.slot_my_booking
+                        SlotStatus.CANCELLED   -> if (item.isSelected) R.color.slot_selected else R.color.slot_available
                     }
                 }
             )
