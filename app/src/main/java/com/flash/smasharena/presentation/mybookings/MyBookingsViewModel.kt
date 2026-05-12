@@ -9,9 +9,12 @@ import com.flash.smasharena.util.DateTimeUtils
 import com.flash.smasharena.util.toAppError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,27 +39,35 @@ class MyBookingsViewModel @Inject constructor(
         loadPast()
     }
 
+    private val minuteTicker = flow {
+        while (true) { emit(Unit); delay(60_000L) }
+    }
+
     private fun observeUpcoming() {
         viewModelScope.launch {
-            slotRepository.getUpcomingBookings().collect { slots ->
-                val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-                val items = slots.map { slot ->
-                    val daysUntil = DateTimeUtils.daysUntil(slot.date)
-                    val isExpired = daysUntil < 0 || (daysUntil == 0 && slot.hour <= currentHour)
-                    BookingItem(
-                        docId = slot.docId,
-                        facilityId = slot.facilityId,
-                        facilityDisplayName = facilityDisplayName(slot.facilityId),
-                        date = slot.date,
-                        displayDate = DateTimeUtils.displayDate(slot.date),
-                        hour = slot.hour,
-                        timeLabel = slot.timeLabel,
-                        isFreeMembership = slot.isFreeMembership,
-                        isExpired = isExpired,
-                    )
+            combine(slotRepository.getUpcomingBookings(), minuteTicker) { slots, _ -> slots }
+                .collect { slots ->
+                    val cal = Calendar.getInstance()
+                    val currentHour = cal.get(Calendar.HOUR_OF_DAY)
+                    val items = slots.map { slot ->
+                        val daysUntil = DateTimeUtils.daysUntil(slot.date)
+                        val isOngoing = daysUntil == 0 && slot.hour == currentHour
+                        val isExpired = daysUntil < 0 || (daysUntil == 0 && slot.hour < currentHour)
+                        BookingItem(
+                            docId = slot.docId,
+                            facilityId = slot.facilityId,
+                            facilityDisplayName = facilityDisplayName(slot.facilityId),
+                            date = slot.date,
+                            displayDate = DateTimeUtils.displayDate(slot.date),
+                            hour = slot.hour,
+                            timeLabel = slot.timeLabel,
+                            isFreeMembership = slot.isFreeMembership,
+                            isExpired = isExpired,
+                            isOngoing = isOngoing,
+                        )
+                    }
+                    _uiState.update { it.copy(upcomingItems = items, isUpcomingLoading = false) }
                 }
-                _uiState.update { it.copy(upcomingItems = items, isUpcomingLoading = false) }
-            }
         }
     }
 

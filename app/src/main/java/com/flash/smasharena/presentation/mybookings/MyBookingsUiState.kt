@@ -12,6 +12,7 @@ data class BookingItem(
     val timeLabel: String,
     val isFreeMembership: Boolean = false,
     val isExpired: Boolean = false,
+    val isOngoing: Boolean = false,
 )
 
 sealed class PastTimelineItem {
