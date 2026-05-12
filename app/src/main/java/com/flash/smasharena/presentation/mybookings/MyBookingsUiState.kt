@@ -30,6 +30,7 @@ sealed class PastTimelineItem {
 
 data class CancelledBookingItem(
     val docId: String,
+    val facilityId: String,
     val facilityDisplayName: String,
     val displayDate: String,
     val timeLabel: String,

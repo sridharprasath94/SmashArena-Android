@@ -25,6 +25,10 @@ class CancelledBookingsAdapter(
             binding.tvDateTime.text = "${item.displayDate} · ${item.timeLabel}"
             binding.tvCancelledOn.text = "Cancelled ${item.cancelledDisplayDate}"
 
+            val iconRes = if (item.facilityId == "badminton_court_1")
+                R.drawable.badminton else R.drawable.cricket
+            binding.ivFacility.setImageResource(iconRes)
+
             binding.cbSelect.isVisible = isSelectionMode
             if (isSelectionMode) {
                 binding.cbSelect.isChecked = item.isSelected

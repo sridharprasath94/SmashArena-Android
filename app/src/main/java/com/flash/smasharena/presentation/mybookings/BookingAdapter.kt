@@ -26,19 +26,22 @@ class BookingAdapter(
 
         fun bind(item: BookingItem) {
             binding.tvFacilityName.text = item.facilityDisplayName
-            binding.tvDate.text = item.displayDate
-            binding.tvTime.text = item.timeLabel
+            binding.tvDateTime.text = "${item.displayDate} · ${item.timeLabel}"
+
+            val iconRes = if (item.facilityId == "badminton_court_1")
+                R.drawable.badminton else R.drawable.cricket
+            binding.ivFacility.setImageResource(iconRes)
 
             val isCancelling = item.docId == cancellingDocId
 
             when {
-                item.isOngoing -> bindOngoing(isCancelling, item)
+                item.isOngoing -> bindOngoing()
                 item.isExpired -> bindExpired()
                 else -> bindNormal(isCancelling, item)
             }
         }
 
-        private fun bindOngoing(isCancelling: Boolean, item: BookingItem) {
+        private fun bindOngoing() {
             binding.root.alpha = 1f
             binding.tvLiveBadge.isVisible = true
             binding.layoutActions.isVisible = false

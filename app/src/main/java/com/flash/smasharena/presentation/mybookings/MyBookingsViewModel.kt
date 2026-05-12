@@ -84,6 +84,7 @@ class MyBookingsViewModel @Inject constructor(
                 val items = slots.map { slot ->
                     CancelledBookingItem(
                         docId = slot.docId,
+                        facilityId = slot.facilityId,
                         facilityDisplayName = facilityDisplayName(slot.facilityId),
                         displayDate = DateTimeUtils.displayDate(slot.date),
                         timeLabel = slot.timeLabel,
