@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.flash.smasharena.R
+import com.flash.smasharena.databinding.ItemBookingControlsBinding
 import com.flash.smasharena.databinding.ItemPastBookingBinding
 import com.flash.smasharena.databinding.ItemPastMonthHeaderBinding
 import com.flash.smasharena.databinding.ItemPastYearHeaderBinding
@@ -15,7 +16,10 @@ import com.flash.smasharena.databinding.ItemPastYearHeaderBinding
 class PastBookingsAdapter(
     private val onYearClicked: (year: Int) -> Unit,
     private val onMonthClicked: (year: Int, month: Int) -> Unit,
-    private val onShowMoreClicked: () -> Unit,
+    private val onShowMoreBookingsClicked: (year: Int, month: Int) -> Unit,
+    private val onShowAllBookingsClicked: (year: Int, month: Int) -> Unit,
+    private val onCollapseBookingsClicked: (year: Int, month: Int) -> Unit,
+    private val onLoadMoreClicked: () -> Unit,
 ) : ListAdapter<PastTimelineItem, RecyclerView.ViewHolder>(DiffCallback) {
 
     inner class YearViewHolder(private val binding: ItemPastYearHeaderBinding) :
@@ -47,35 +51,48 @@ class PastBookingsAdapter(
         }
     }
 
-    inner class ShowMoreViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        init { view.setOnClickListener { onShowMoreClicked() } }
+    inner class BookingControlsViewHolder(private val binding: ItemBookingControlsBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        fun bind(item: PastTimelineItem.BookingControls) {
+            binding.btnShowMore.isVisible = item.canShowMore
+            binding.btnShowAll.isVisible = item.canShowMore
+            binding.btnCollapse.isVisible = item.canCollapse
+            binding.btnShowMore.setOnClickListener { onShowMoreBookingsClicked(item.year, item.month) }
+            binding.btnShowAll.setOnClickListener { onShowAllBookingsClicked(item.year, item.month) }
+            binding.btnCollapse.setOnClickListener { onCollapseBookingsClicked(item.year, item.month) }
+        }
+    }
+
+    inner class LoadMoreViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        init { view.setOnClickListener { onLoadMoreClicked() } }
     }
 
     override fun getItemViewType(position: Int): Int = when (getItem(position)) {
-        is PastTimelineItem.YearHeader   -> TYPE_YEAR
-        is PastTimelineItem.MonthHeader  -> TYPE_MONTH
-        is PastTimelineItem.BookingEntry -> TYPE_BOOKING
-        PastTimelineItem.ShowMore        -> TYPE_SHOW_MORE
+        is PastTimelineItem.YearHeader      -> TYPE_YEAR
+        is PastTimelineItem.MonthHeader     -> TYPE_MONTH
+        is PastTimelineItem.BookingEntry    -> TYPE_BOOKING
+        is PastTimelineItem.BookingControls -> TYPE_BOOKING_CONTROLS
+        PastTimelineItem.ShowMore           -> TYPE_LOAD_MORE
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            TYPE_YEAR    -> YearViewHolder(ItemPastYearHeaderBinding.inflate(inflater, parent, false))
-            TYPE_MONTH   -> MonthViewHolder(ItemPastMonthHeaderBinding.inflate(inflater, parent, false))
-            TYPE_BOOKING -> BookingViewHolder(ItemPastBookingBinding.inflate(inflater, parent, false))
-            else -> ShowMoreViewHolder(
-                inflater.inflate(R.layout.item_show_more, parent, false)
-            )
+            TYPE_YEAR             -> YearViewHolder(ItemPastYearHeaderBinding.inflate(inflater, parent, false))
+            TYPE_MONTH            -> MonthViewHolder(ItemPastMonthHeaderBinding.inflate(inflater, parent, false))
+            TYPE_BOOKING          -> BookingViewHolder(ItemPastBookingBinding.inflate(inflater, parent, false))
+            TYPE_BOOKING_CONTROLS -> BookingControlsViewHolder(ItemBookingControlsBinding.inflate(inflater, parent, false))
+            else                  -> LoadMoreViewHolder(inflater.inflate(R.layout.item_show_more, parent, false))
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = getItem(position)) {
-            is PastTimelineItem.YearHeader   -> (holder as YearViewHolder).bind(item)
-            is PastTimelineItem.MonthHeader  -> (holder as MonthViewHolder).bind(item)
-            is PastTimelineItem.BookingEntry -> (holder as BookingViewHolder).bind(item)
-            PastTimelineItem.ShowMore        -> { /* click handled in ViewHolder init */ }
+            is PastTimelineItem.YearHeader      -> (holder as YearViewHolder).bind(item)
+            is PastTimelineItem.MonthHeader     -> (holder as MonthViewHolder).bind(item)
+            is PastTimelineItem.BookingEntry    -> (holder as BookingViewHolder).bind(item)
+            is PastTimelineItem.BookingControls -> (holder as BookingControlsViewHolder).bind(item)
+            PastTimelineItem.ShowMore           -> { /* click handled in ViewHolder init */ }
         }
     }
 
@@ -84,6 +101,7 @@ class PastBookingsAdapter(
             a is PastTimelineItem.YearHeader && b is PastTimelineItem.YearHeader -> a.year == b.year
             a is PastTimelineItem.MonthHeader && b is PastTimelineItem.MonthHeader -> a.year == b.year && a.month == b.month
             a is PastTimelineItem.BookingEntry && b is PastTimelineItem.BookingEntry -> a.item.docId == b.item.docId
+            a is PastTimelineItem.BookingControls && b is PastTimelineItem.BookingControls -> a.year == b.year && a.month == b.month
             a is PastTimelineItem.ShowMore && b is PastTimelineItem.ShowMore -> true
             else -> false
         }
@@ -91,9 +109,10 @@ class PastBookingsAdapter(
     }
 
     companion object {
-        private const val TYPE_YEAR      = 0
-        private const val TYPE_MONTH     = 1
-        private const val TYPE_BOOKING   = 2
-        private const val TYPE_SHOW_MORE = 3
+        private const val TYPE_YEAR             = 0
+        private const val TYPE_MONTH            = 1
+        private const val TYPE_BOOKING          = 2
+        private const val TYPE_BOOKING_CONTROLS = 3
+        private const val TYPE_LOAD_MORE        = 4
     }
 }

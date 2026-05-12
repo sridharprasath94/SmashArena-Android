@@ -2,18 +2,20 @@ package com.flash.smasharena.presentation.mybookings
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.flash.smasharena.R
 import com.flash.smasharena.databinding.ItemCancelledBookingBinding
 
 class CancelledBookingsAdapter(
-    private val onDeleteClicked: (CancelledBookingItem) -> Unit,
     private val onItemClicked: (CancelledBookingItem) -> Unit,
+    private val onItemLongClicked: (CancelledBookingItem) -> Unit,
 ) : ListAdapter<CancelledBookingItem, CancelledBookingsAdapter.ViewHolder>(DiffCallback) {
 
-    var isMultiSelectMode: Boolean = false
+    var isSelectionMode: Boolean = false
 
     inner class ViewHolder(private val binding: ItemCancelledBookingBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -23,16 +25,27 @@ class CancelledBookingsAdapter(
             binding.tvDateTime.text = "${item.displayDate} · ${item.timeLabel}"
             binding.tvCancelledOn.text = "Cancelled ${item.cancelledDisplayDate}"
 
-            binding.cbSelect.isVisible = isMultiSelectMode
-            binding.btnDelete.isVisible = !isMultiSelectMode
+            val iconRes = if (item.facilityId == "badminton_court_1")
+                R.drawable.badminton else R.drawable.cricket
+            binding.ivFacility.setImageResource(iconRes)
 
-            if (isMultiSelectMode) {
+            binding.cbSelect.isVisible = isSelectionMode
+            if (isSelectionMode) {
                 binding.cbSelect.isChecked = item.isSelected
-                binding.cbSelect.setOnClickListener { onItemClicked(item) }
-                binding.root.setOnClickListener { onItemClicked(item) }
-            } else {
-                binding.btnDelete.setOnClickListener { onDeleteClicked(item) }
-                binding.root.setOnClickListener(null)
+            }
+
+            val strokeColor = ContextCompat.getColor(
+                binding.root.context,
+                if (item.isSelected) R.color.accent_green else R.color.outline,
+            )
+            binding.root.setStrokeColor(strokeColor)
+
+            binding.root.setOnClickListener {
+                if (isSelectionMode) onItemClicked(item)
+            }
+            binding.root.setOnLongClickListener {
+                onItemLongClicked(item)
+                true
             }
         }
     }

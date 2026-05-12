@@ -25,8 +25,6 @@ class CancelledBookingsFragment : Fragment(R.layout.fragment_cancelled_bookings)
     private val binding by viewBinding(FragmentCancelledBookingsBinding::bind)
     private lateinit var adapter: CancelledBookingsAdapter
 
-    private var isMultiSelectMode = false
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
@@ -37,11 +35,12 @@ class CancelledBookingsFragment : Fragment(R.layout.fragment_cancelled_bookings)
 
     private fun setupRecyclerView() {
         adapter = CancelledBookingsAdapter(
-            onDeleteClicked = { item ->
-                ConfirmationDialog.deleteCancelled(requireContext(), item.docId)
-                    .show(childFragmentManager, "delete_cancelled")
-            },
             onItemClicked = { item -> viewModel.toggleSelectCancelled(item.docId) },
+            onItemLongClicked = { item ->
+                if (!adapter.isSelectionMode) {
+                    viewModel.toggleSelectCancelled(item.docId)
+                }
+            },
         )
         binding.rvCancelled.apply {
             this.adapter = this@CancelledBookingsFragment.adapter
@@ -50,18 +49,18 @@ class CancelledBookingsFragment : Fragment(R.layout.fragment_cancelled_bookings)
     }
 
     private fun setupClickListeners() {
-        binding.btnSelect.setOnClickListener { enterMultiSelectMode() }
-        binding.btnCloseMultiselect.setOnClickListener { exitMultiSelectMode() }
-        binding.btnDeleteSelected.setOnClickListener {
-            val count = viewModel.uiState.value.selectedCancelledIds.size
-            if (count > 0) {
-                ConfirmationDialog.deleteMultipleCancelled(requireContext(), count)
+        binding.btnCancelSelection.setOnClickListener {
+            viewModel.clearCancelledSelection()
+        }
+        binding.btnTrash.setOnClickListener {
+            val selected = viewModel.uiState.value.selectedCancelledIds
+            if (selected.size == 1) {
+                ConfirmationDialog.deleteCancelled(requireContext(), selected.first())
+                    .show(childFragmentManager, "delete_cancelled")
+            } else if (selected.size > 1) {
+                ConfirmationDialog.deleteMultipleCancelled(requireContext(), selected.size)
                     .show(childFragmentManager, "delete_cancelled_multi")
             }
-        }
-        binding.cbSelectAll.setOnClickListener {
-            if (binding.cbSelectAll.isChecked) viewModel.selectAllCancelled()
-            else viewModel.clearCancelledSelection()
         }
     }
 
@@ -76,25 +75,7 @@ class CancelledBookingsFragment : Fragment(R.layout.fragment_cancelled_bookings)
             ConfirmationDialog.REQUEST_DELETE_CANCELLED_MULTI, viewLifecycleOwner
         ) { _, _ ->
             viewModel.deleteSelectedCancelled()
-            exitMultiSelectMode()
         }
-    }
-
-    private fun enterMultiSelectMode() {
-        isMultiSelectMode = true
-        adapter.isMultiSelectMode = true
-        adapter.notifyDataSetChanged()
-        binding.layoutMultiselectBar.isVisible = true
-        binding.layoutNormalBar.isVisible = false
-    }
-
-    private fun exitMultiSelectMode() {
-        isMultiSelectMode = false
-        adapter.isMultiSelectMode = false
-        viewModel.clearCancelledSelection()
-        adapter.notifyDataSetChanged()
-        binding.layoutMultiselectBar.isVisible = false
-        binding.layoutNormalBar.isVisible = true
     }
 
     private fun observeUiState() {
@@ -102,19 +83,22 @@ class CancelledBookingsFragment : Fragment(R.layout.fragment_cancelled_bookings)
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     val hasItems = state.cancelledItems.isNotEmpty()
+                    val isSelectionMode = state.selectedCancelledIds.isNotEmpty()
+
                     binding.progressBar.isVisible = state.isCancelledLoading
                     binding.rvCancelled.isVisible = !state.isCancelledLoading && hasItems
                     binding.tvEmpty.isVisible = !state.isCancelledLoading && !hasItems
 
-                    if (!isMultiSelectMode) {
-                        binding.layoutNormalBar.isVisible = hasItems
-                    }
+                    binding.layoutSelectionBar.isVisible = isSelectionMode
+                    binding.layoutBottomAction.isVisible = isSelectionMode
 
-                    binding.tvSelectedCount.text = getString(
-                        R.string.selected_count, state.selectedCancelledIds.size
-                    )
-                    binding.cbSelectAll.isChecked =
-                        hasItems && state.selectedCancelledIds.size == state.cancelledItems.size
+                    val count = state.selectedCancelledIds.size
+                    binding.tvSelectedCount.text = getString(R.string.selected_count, count)
+
+                    if (adapter.isSelectionMode != isSelectionMode) {
+                        adapter.isSelectionMode = isSelectionMode
+                        adapter.notifyItemRangeChanged(0, adapter.itemCount)
+                    }
 
                     adapter.submitList(state.cancelledItems)
 
