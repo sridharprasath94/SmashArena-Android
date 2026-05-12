@@ -19,6 +19,12 @@ sealed class PastTimelineItem {
     data class YearHeader(val year: Int, val isExpanded: Boolean) : PastTimelineItem()
     data class MonthHeader(val year: Int, val month: Int, val label: String, val isExpanded: Boolean) : PastTimelineItem()
     data class BookingEntry(val item: BookingItem) : PastTimelineItem()
+    data class BookingControls(
+        val year: Int,
+        val month: Int,
+        val canShowMore: Boolean,
+        val canCollapse: Boolean,
+    ) : PastTimelineItem()
     object ShowMore : PastTimelineItem()
 }
 

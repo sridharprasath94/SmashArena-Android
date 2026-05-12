@@ -12,6 +12,7 @@ import com.flash.smasharena.util.toAppError
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import java.util.Calendar
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -80,13 +81,15 @@ class SlotRepositoryImpl @Inject constructor(
     override suspend fun getPastBookings(): List<Slot> {
         val uid = firebaseAuth.currentUser?.uid ?: return emptyList()
         val today = DateTimeUtils.today()
+        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val snapshot = firestore.collection("slots")
             .whereEqualTo(SlotFields.BOOKED_BY, uid)
             .get()
             .await()
         return snapshot.documents
             .mapNotNull { it.toSlot() }
-            .filter { it.status == SlotStatus.BOOKED && it.date < today }
+            .filter { it.status == SlotStatus.BOOKED &&
+                (it.date < today || (it.date == today && it.hour < currentHour)) }
             .sortedWith(compareByDescending<Slot> { it.date }.thenByDescending { it.hour })
     }
 

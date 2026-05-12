@@ -8,6 +8,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentPastBookingsBinding
@@ -34,11 +35,20 @@ class PastBookingsFragment : Fragment(R.layout.fragment_past_bookings) {
         adapter = PastBookingsAdapter(
             onYearClicked = { year -> viewModel.toggleYearExpanded(year) },
             onMonthClicked = { year, month -> viewModel.toggleMonthExpanded(year, month) },
-            onShowMoreClicked = { viewModel.loadPast(loadMore = true) },
+            onShowMoreBookingsClicked = { year, month -> viewModel.showMoreBookings(year, month) },
+            onShowAllBookingsClicked = { year, month -> viewModel.showAllBookings(year, month) },
+            onCollapseBookingsClicked = { year, month -> viewModel.collapseBookings(year, month) },
+            onLoadMoreClicked = { viewModel.loadPast(loadMore = true) },
         )
         binding.rvPast.apply {
             this.adapter = this@PastBookingsFragment.adapter
             layoutManager = LinearLayoutManager(requireContext())
+            (itemAnimator as? DefaultItemAnimator)?.apply {
+                supportsChangeAnimations = false
+                addDuration = 150
+                removeDuration = 120
+                moveDuration = 180
+            }
         }
     }
 
@@ -46,7 +56,7 @@ class PastBookingsFragment : Fragment(R.layout.fragment_past_bookings) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    val hasItems = state.pastTimelineItems.any { it is PastTimelineItem.BookingEntry }
+                    val hasItems = state.pastTimelineItems.isNotEmpty()
                     binding.progressBar.isVisible = state.isPastLoading
                     binding.rvPast.isVisible = !state.isPastLoading && hasItems
                     binding.tvEmpty.isVisible = !state.isPastLoading && !hasItems

@@ -32,6 +32,8 @@ class MyBookingsViewModel @Inject constructor(
     private var loadedPastMonths = 12
     private val expandedYears = mutableSetOf<Int>()
     private val expandedMonths = mutableSetOf<Pair<Int, Int>>()
+    private val monthVisibleCounts = mutableMapOf<Pair<Int, Int>, Int>()
+    private var prevExpiredDocIds: Set<String>? = null
 
     init {
         observeUpcoming()
@@ -66,7 +68,12 @@ class MyBookingsViewModel @Inject constructor(
                             isOngoing = isOngoing,
                         )
                     }
-                    _uiState.update { it.copy(upcomingItems = items, isUpcomingLoading = false) }
+                    val nowExpiredDocIds = items.filter { it.isExpired }.map { it.docId }.toSet()
+                    if (prevExpiredDocIds != null && nowExpiredDocIds != prevExpiredDocIds) {
+                        loadPast(showLoading = false)
+                    }
+                    prevExpiredDocIds = nowExpiredDocIds
+                    _uiState.update { it.copy(upcomingItems = items.filter { !it.isExpired }, isUpcomingLoading = false) }
                 }
         }
     }
@@ -99,10 +106,10 @@ class MyBookingsViewModel @Inject constructor(
         }
     }
 
-    fun loadPast(loadMore: Boolean = false) {
+    fun loadPast(loadMore: Boolean = false, showLoading: Boolean = true) {
         if (loadMore) loadedPastMonths += 12
         viewModelScope.launch {
-            _uiState.update { it.copy(isPastLoading = true) }
+            if (showLoading) _uiState.update { it.copy(isPastLoading = true) }
             runCatching { slotRepository.getPastBookings() }
                 .onSuccess { slots ->
                     val items = slots.map { slot ->
@@ -128,7 +135,7 @@ class MyBookingsViewModel @Inject constructor(
                         expandedMonths.add(latestYear to latestMonth)
                     }
                     rebuildPastTimeline()
-                    _uiState.update { it.copy(isPastLoading = false) }
+                    if (showLoading) _uiState.update { it.copy(isPastLoading = false) }
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(isPastLoading = false, error = e.toAppError()) }
@@ -157,7 +164,15 @@ class MyBookingsViewModel @Inject constructor(
                         val isMonthExpanded = (year to month) in expandedMonths
                         add(PastTimelineItem.MonthHeader(year, month, DateTimeUtils.monthName(month), isMonthExpanded))
                         if (isMonthExpanded) {
-                            monthItems.forEach { add(PastTimelineItem.BookingEntry(it)) }
+                            val key = year to month
+                            val total = monthItems.size
+                            val visible = monthVisibleCounts.getOrDefault(key, INITIAL_VISIBLE).coerceAtMost(total)
+                            monthItems.take(visible).forEach { add(PastTimelineItem.BookingEntry(it)) }
+                            val canShowMore = visible < total
+                            val canCollapse = visible > INITIAL_VISIBLE
+                            if (canShowMore || canCollapse) {
+                                add(PastTimelineItem.BookingControls(year, month, canShowMore, canCollapse))
+                            }
                         }
                     }
                 }
@@ -173,8 +188,40 @@ class MyBookingsViewModel @Inject constructor(
 
     fun toggleMonthExpanded(year: Int, month: Int) {
         val key = year to month
-        if (key in expandedMonths) expandedMonths.remove(key) else expandedMonths.add(key)
+        if (key in expandedMonths) {
+            expandedMonths.remove(key)
+            monthVisibleCounts.remove(key)
+        } else {
+            expandedMonths.add(key)
+        }
         rebuildPastTimeline()
+    }
+
+    fun showMoreBookings(year: Int, month: Int) {
+        val key = year to month
+        val total = getMonthTotal(year, month)
+        val current = monthVisibleCounts.getOrDefault(key, INITIAL_VISIBLE)
+        monthVisibleCounts[key] = minOf(current + 3, total)
+        rebuildPastTimeline()
+    }
+
+    fun showAllBookings(year: Int, month: Int) {
+        monthVisibleCounts[year to month] = getMonthTotal(year, month)
+        rebuildPastTimeline()
+    }
+
+    fun collapseBookings(year: Int, month: Int) {
+        monthVisibleCounts.remove(year to month)
+        rebuildPastTimeline()
+    }
+
+    private fun getMonthTotal(year: Int, month: Int): Int {
+        val fromDate = DateTimeUtils.monthsAgo(loadedPastMonths)
+        return allPastBookings.count { item ->
+            item.date >= fromDate &&
+                item.date.substring(0, 4).toInt() == year &&
+                item.date.substring(5, 7).toInt() == month
+        }
     }
 
     fun cancelBooking(docId: String) {
@@ -251,6 +298,10 @@ class MyBookingsViewModel @Inject constructor(
 
     fun onCancelSuccessHandled() = _uiState.update { it.copy(cancelSuccess = false) }
     fun onErrorShown() = _uiState.update { it.copy(error = null) }
+
+    private companion object {
+        const val INITIAL_VISIBLE = 3
+    }
 
     private fun facilityDisplayName(facilityId: String): String = when (facilityId) {
         "badminton_court_1" -> "Badminton Court"
