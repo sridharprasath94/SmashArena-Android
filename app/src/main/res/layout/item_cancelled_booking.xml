@@ -16,7 +16,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:paddingEnd="8dp"
+        android:paddingEnd="14dp"
         android:paddingVertical="12dp">
 
         <CheckBox
@@ -25,7 +25,9 @@
             android:layout_height="wrap_content"
             android:buttonTint="@color/accent_green"
             android:visibility="gone"
-            android:layout_marginEnd="4dp" />
+            android:layout_marginEnd="4dp"
+            android:clickable="false"
+            android:focusable="false" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -60,16 +62,6 @@
                 android:textSize="12sp" />
 
         </LinearLayout>
-
-        <ImageButton
-            android:id="@+id/btn_delete"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:src="@drawable/ic_close"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="8dp"
-            app:tint="@color/cancel_action"
-            android:contentDescription="@null" />
 
     </LinearLayout>
 
