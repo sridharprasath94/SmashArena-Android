@@ -102,6 +102,8 @@
     <string name="past_bookings_empty">No past bookings yet.</string>
     <string name="cancelled_bookings_empty">No cancelled bookings.</string>
     <string name="btn_show_more">Show more</string>
+    <string name="btn_show_all">Show all</string>
+    <string name="btn_collapse">Collapse</string>
     <string name="btn_select">Select</string>
     <string name="btn_delete">Delete</string>
     <string name="cancelled_on">Cancelled %1$s</string>

@@ -1,32 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingHorizontal="16dp"
-    android:paddingTop="20dp"
-    android:paddingBottom="8dp"
-    android:background="?attr/selectableItemBackground"
+    android:layout_marginStart="12dp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginTop="14dp"
+    android:layout_marginBottom="2dp"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    app:cardBackgroundColor="@color/surface"
+    app:cardCornerRadius="12dp"
+    app:strokeColor="@color/outline"
+    app:strokeWidth="1dp">
 
-    <TextView
-        android:id="@+id/tv_year"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textColor="@color/text_primary"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.01" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="14dp">
 
-    <ImageView
-        android:id="@+id/iv_expand"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:src="@drawable/ic_chevron_down"
-        android:contentDescription="@null" />
+        <TextView
+            android:id="@+id/tv_year"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.01" />
 
-</LinearLayout>
+        <ImageView
+            android:id="@+id/iv_expand"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_chevron_down"
+            android:contentDescription="@null" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
