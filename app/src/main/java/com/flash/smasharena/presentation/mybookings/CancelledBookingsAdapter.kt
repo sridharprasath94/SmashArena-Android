@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.flash.smasharena.R
+import com.flash.smasharena.domain.model.Facility
 import com.flash.smasharena.databinding.ItemCancelledBookingBinding
 
 class CancelledBookingsAdapter(
@@ -25,8 +26,8 @@ class CancelledBookingsAdapter(
             binding.tvDateTime.text = "${item.displayDate} · ${item.timeLabel}"
             binding.tvCancelledOn.text = "Cancelled ${item.cancelledDisplayDate}"
 
-            val iconRes = if (item.facilityId == "badminton_court_1")
-                R.drawable.badminton else R.drawable.cricket
+            val iconRes = Facility.entries.find { it.id == item.facilityId }?.imageRes
+                ?: R.drawable.badminton
             binding.ivFacility.setImageResource(iconRes)
 
             binding.cbSelect.isVisible = isSelectionMode

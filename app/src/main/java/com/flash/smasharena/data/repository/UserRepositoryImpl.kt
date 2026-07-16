@@ -45,18 +45,16 @@ class UserRepositoryImpl @Inject constructor(
                     docRef.update(mapOf(
                         UserFields.MEMBERSHIP_TIER to scheduled.name,
                         UserFields.MEMBERSHIP_EXPIRY to newExpiry,
-                        UserFields.BADMINTON_SESSIONS_USED to 0,
+                        UserFields.SESSIONS_USED to 0,
                         UserFields.SESSIONS_QUOTA to scheduled.sessionsPerMonth,
-                        UserFields.CRICKET_SESSIONS_USED to 0,
                         UserFields.MEMBERSHIP_CANCELLED to false,
                         UserFields.SCHEDULED_NEXT_TIER to null,
                     ))
                     p.copy(
                         membershipTier = scheduled,
                         membershipExpiry = newExpiry,
-                        badmintonSessionsUsed = 0,
+                        sessionsUsed = 0,
                         sessionsQuota = scheduled.sessionsPerMonth,
-                        cricketSessionsUsed = 0,
                         membershipCancelled = false,
                         scheduledNextTier = null,
                     )
@@ -64,17 +62,15 @@ class UserRepositoryImpl @Inject constructor(
                     docRef.update(mapOf(
                         UserFields.MEMBERSHIP_TIER to MembershipTier.NONE.name,
                         UserFields.MEMBERSHIP_EXPIRY to null,
-                        UserFields.BADMINTON_SESSIONS_USED to 0,
+                        UserFields.SESSIONS_USED to 0,
                         UserFields.SESSIONS_QUOTA to 0,
-                        UserFields.CRICKET_SESSIONS_USED to 0,
                         UserFields.MEMBERSHIP_CANCELLED to false,
                     ))
                     p.copy(
                         membershipTier = MembershipTier.NONE,
                         membershipExpiry = null,
-                        badmintonSessionsUsed = 0,
+                        sessionsUsed = 0,
                         sessionsQuota = 0,
-                        cricketSessionsUsed = 0,
                         membershipCancelled = false,
                     )
                 }
@@ -87,9 +83,8 @@ class UserRepositoryImpl @Inject constructor(
                 UserFields.EMAIL to (firebaseUser.email ?: ""),
                 UserFields.MEMBERSHIP_TIER to MembershipTier.NONE.name,
                 UserFields.MEMBERSHIP_EXPIRY to null,
-                UserFields.BADMINTON_SESSIONS_USED to 0,
+                UserFields.SESSIONS_USED to 0,
                 UserFields.SESSIONS_QUOTA to 0,
-                UserFields.CRICKET_SESSIONS_USED to 0,
             )
             docRef.set(defaults).await()
             UserProfile(
@@ -98,7 +93,7 @@ class UserRepositoryImpl @Inject constructor(
                 email = firebaseUser.email ?: "",
                 membershipTier = MembershipTier.NONE,
                 membershipExpiry = null,
-                badmintonSessionsUsed = 0,
+                sessionsUsed = 0,
                 sessionsQuota = 0,
             )
         }
@@ -129,8 +124,7 @@ class UserRepositoryImpl @Inject constructor(
             mapOf(
                 UserFields.MEMBERSHIP_TIER to tier.name,
                 UserFields.SESSIONS_QUOTA to tier.sessionsPerMonth,
-                UserFields.BADMINTON_SESSIONS_USED to 0,
-                UserFields.CRICKET_SESSIONS_USED to 0,
+                UserFields.SESSIONS_USED to 0,
                 UserFields.MEMBERSHIP_EXPIRY to expiry,
                 UserFields.MEMBERSHIP_CANCELLED to false,
             )
@@ -173,23 +167,21 @@ class UserRepositoryImpl @Inject constructor(
         cachedProfile = null
     }
 
-    override suspend fun incrementSessionsUsed(isCricket: Boolean) {
+    override suspend fun incrementSessionsUsed() {
         requireNetwork()
         val uid = firebaseAuth.requireUid()
-        val field = if (isCricket) UserFields.CRICKET_SESSIONS_USED else UserFields.BADMINTON_SESSIONS_USED
         val docRef = firestore.collection("users").document(uid)
-        docRef.update(field, FieldValue.increment(1)).await()
+        docRef.update(UserFields.SESSIONS_USED, FieldValue.increment(1)).await()
         cachedProfile = null
     }
 
-    override suspend fun decrementSessionsUsed(isCricket: Boolean) {
+    override suspend fun decrementSessionsUsed() {
         requireNetwork()
         val uid = firebaseAuth.requireUid()
-        val field = if (isCricket) UserFields.CRICKET_SESSIONS_USED else UserFields.BADMINTON_SESSIONS_USED
         val docRef = firestore.collection("users").document(uid)
         firestore.runTransaction { tx ->
-            val current = tx.get(docRef).getLong(field)?.toInt() ?: 0
-            tx.update(docRef, field, (current - 1).coerceAtLeast(0))
+            val current = tx.get(docRef).getLong(UserFields.SESSIONS_USED)?.toInt() ?: 0
+            tx.update(docRef, UserFields.SESSIONS_USED, (current - 1).coerceAtLeast(0))
         }.await()
         cachedProfile = null
     }
@@ -209,9 +201,8 @@ class UserRepositoryImpl @Inject constructor(
             email = getString(UserFields.EMAIL) ?: "",
             membershipTier = tier,
             membershipExpiry = getLong(UserFields.MEMBERSHIP_EXPIRY),
-            badmintonSessionsUsed = getLong(UserFields.BADMINTON_SESSIONS_USED)?.toInt() ?: 0,
+            sessionsUsed = getLong(UserFields.SESSIONS_USED)?.toInt() ?: 0,
             sessionsQuota = getLong(UserFields.SESSIONS_QUOTA)?.toInt() ?: 0,
-            cricketSessionsUsed = getLong(UserFields.CRICKET_SESSIONS_USED)?.toInt() ?: 0,
             membershipCancelled = getBoolean(UserFields.MEMBERSHIP_CANCELLED) ?: false,
             scheduledNextTier = scheduledNextTier,
         )

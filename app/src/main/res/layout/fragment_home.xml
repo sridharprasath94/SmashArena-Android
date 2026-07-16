@@ -59,20 +59,12 @@
                 android:letterSpacing="0.08"
                 android:textAllCaps="true" />
 
-            <!-- Badminton Court card -->
-            <include
-                android:id="@+id/card_badminton"
-                layout="@layout/item_facility_card"
+            <!-- Facility cards, populated from Facility.entries in HomeFragment -->
+            <LinearLayout
+                android:id="@+id/facility_cards_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp" />
-
-            <!-- Cricket Net card -->
-            <include
-                android:id="@+id/card_cricket"
-                layout="@layout/item_facility_card"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:orientation="vertical" />
 
         </LinearLayout>
 

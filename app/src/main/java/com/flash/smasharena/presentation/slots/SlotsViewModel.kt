@@ -3,7 +3,6 @@ package com.flash.smasharena.presentation.slots
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.flash.smasharena.domain.model.Facility
 import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.domain.model.SlotStatus
 import com.flash.smasharena.domain.model.UserProfile
@@ -137,7 +136,7 @@ class SlotsViewModel @Inject constructor(
             slotRepository.cancelBooking(docId)
                 .onSuccess {
                     if (slot.isFreeMembership) {
-                        runCatching { userRepository.decrementSessionsUsed(isCricket = facilityId == Facility.CRICKET_NET.id) }
+                        runCatching { userRepository.decrementSessionsUsed() }
                     }
                     _uiState.update { it.copy(isCancelling = false, selectedSlot = null) }
                     _events.trySend(SlotsEvent.ShowBookingResult(BookingResultInfo(
@@ -177,11 +176,7 @@ class SlotsViewModel @Inject constructor(
     fun isFreeSession(): Boolean {
         val profile = userProfile ?: return false
         if (!profile.isMember) return false
-        return if (facilityId == Facility.CRICKET_NET.id) {
-            profile.cricketSessionsRemaining > 0
-        } else {
-            profile.sessionsRemaining > 0
-        }
+        return profile.sessionsRemaining > 0
     }
 
     fun bookSelectedSlotFree() {
@@ -191,7 +186,7 @@ class SlotsViewModel @Inject constructor(
             _uiState.update { it.copy(isBookingFree = true, error = null) }
             slotRepository.bookSlot(facilityId, dateItem.dateString, slot.hour, isFreeMembership = true)
                 .onSuccess {
-                    runCatching { userRepository.incrementSessionsUsed(isCricket = facilityId == Facility.CRICKET_NET.id) }
+                    runCatching { userRepository.incrementSessionsUsed() }
                     _uiState.update { it.copy(isBookingFree = false, selectedSlot = null) }
                     _events.trySend(SlotsEvent.ShowBookingResult(BookingResultInfo(
                         type = ResultType.BOOKED,

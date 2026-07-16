@@ -73,16 +73,6 @@
             android:textSize="14sp"
             android:textStyle="bold" />
 
-        <!-- Cricket sessions -->
-        <TextView
-            android:id="@+id/tv_cricket_sessions"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:textColor="@color/text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
         <!-- Divider -->
         <View
             android:layout_width="match_parent"
@@ -102,16 +92,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
-            android:text="@string/plan_feature_priority"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="@string/plan_feature_cricket"
+            android:text="@string/plan_feature_priority"
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
 

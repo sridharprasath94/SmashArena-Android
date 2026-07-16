@@ -19,7 +19,6 @@ sealed class MembershipPendingAction {
 data class PlanItem(
     val tier: MembershipTier,
     val badmintonSessions: Int,
-    val cricketSessions: Int,
     val isCurrentPlan: Boolean,
     val isRecommended: Boolean,
     val isSelected: Boolean,

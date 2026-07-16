@@ -27,8 +27,6 @@ class PlanAdapter(
             binding.tvPrice.text = ctx.getString(R.string.plan_price_per_month, "%,d".format(item.tier.priceRupees))
             binding.tvBadmintonSessions.text =
                 ctx.getString(R.string.plan_badminton_sessions, item.badmintonSessions)
-            binding.tvCricketSessions.text =
-                ctx.getString(R.string.plan_cricket_sessions, item.cricketSessions)
             binding.tvFeatureEarlyAccess.text =
                 ctx.getString(R.string.plan_feature_early_access, item.tier.bookingDaysAhead)
 

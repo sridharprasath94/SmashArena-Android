@@ -11,6 +11,6 @@ interface UserRepository {
     suspend fun upgradeMembership(newTier: MembershipTier)
     suspend fun cancelMembership()
     suspend fun scheduleNextCycleMembership(tier: MembershipTier)
-    suspend fun incrementSessionsUsed(isCricket: Boolean = false)
-    suspend fun decrementSessionsUsed(isCricket: Boolean = false)
+    suspend fun incrementSessionsUsed()
+    suspend fun decrementSessionsUsed()
 }

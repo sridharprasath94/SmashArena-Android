@@ -21,7 +21,8 @@
 
     <!-- Facilities -->
     <string name="facility_badminton">Badminton Court</string>
-    <string name="facility_cricket">Cricket Net</string>
+    <string name="home_sessions_remaining">%1$d free sessions left</string>
+    <string name="home_quota_used">Quota used this month</string>
 
     <!-- Booking -->
     <string name="booking_title">Book %1$s</string>
@@ -117,15 +118,12 @@
     <string name="membership_headline">Book smarter, play more.</string>
     <string name="membership_subheadline">Without a membership, you can book up to 3 days ahead. Upgrade to book further in advance.</string>
     <string name="perk_early_access">Early slot\naccess</string>
-    <string name="perk_cricket_access">Cricket nets\nincluded</string>
     <string name="perk_save_more">Save more\nper session</string>
     <string name="label_choose_plan">Choose a plan</string>
     <string name="plan_badminton_sessions">🏸  %1$d badminton sessions / month</string>
-    <string name="plan_cricket_sessions">🏏  %1$d free cricket net sessions / month</string>
     <string name="plan_recommended">BEST VALUE</string>
     <string name="plan_feature_early_access">✓  Book %1$d days ahead</string>
-    <string name="plan_feature_priority">✓  Priority slot selection for both courts</string>
-    <string name="plan_feature_cricket">✓  Access to cricket nets included</string>
+    <string name="plan_feature_priority">✓  Priority slot selection</string>
     <string name="plan_get_started">Choose Plan</string>
     <string name="plan_current">Current Plan</string>
     <string name="plan_upgrade_btn">Upgrade This Cycle</string>
