@@ -12,6 +12,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.core.content.ContextCompat
 import com.flash.smasharena.R
 import com.flash.smasharena.databinding.FragmentHomeBinding
+import com.flash.smasharena.databinding.ItemFacilityCardBinding
 import com.flash.smasharena.domain.model.Facility
 import com.flash.smasharena.domain.model.MembershipTier
 import com.flash.smasharena.presentation.slots.ConfirmationDialog
@@ -29,6 +30,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private val viewModel: HomeViewModel by viewModels()
     private val binding by viewBinding(FragmentHomeBinding::bind)
+    private var facilityCards: List<Pair<Facility, ItemFacilityCardBinding>> = emptyList()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -75,18 +77,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun setupFacilityCards() {
-        binding.cardBadminton.apply {
-            tvFacilityName.setText(Facility.BADMINTON_COURT.nameRes)
-            tvFacilityDescription.text = Facility.BADMINTON_COURT.description
-            ivFacility.setImageResource(Facility.BADMINTON_COURT.imageRes)
-            btnBook.setOnClickListener { navigateToSlots(Facility.BADMINTON_COURT) }
-        }
-
-        binding.cardCricket.apply {
-            tvFacilityName.setText(Facility.CRICKET_NET.nameRes)
-            tvFacilityDescription.text = Facility.CRICKET_NET.description
-            ivFacility.setImageResource(Facility.CRICKET_NET.imageRes)
-            btnBook.setOnClickListener { navigateToSlots(Facility.CRICKET_NET) }
+        binding.facilityCardsContainer.removeAllViews()
+        facilityCards = Facility.entries.map { facility ->
+            val cardBinding = ItemFacilityCardBinding.inflate(
+                layoutInflater, binding.facilityCardsContainer, true
+            )
+            cardBinding.apply {
+                tvFacilityName.setText(facility.nameRes)
+                tvFacilityDescription.text = facility.description
+                ivFacility.setImageResource(facility.imageRes)
+                btnBook.setOnClickListener { navigateToSlots(facility) }
+            }
+            facility to cardBinding
         }
     }
 
@@ -123,10 +125,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 val scheduled = profile.scheduledNextTier
                                 binding.membershipBanner.tvCancelledBadge.isVisible =
                                     profile.membershipCancelled && scheduled == null
-                                binding.membershipBanner.tvBadmintonRemaining.text =
+                                binding.membershipBanner.tvSessionsRemaining.text =
                                     "🏸 ${profile.sessionsRemaining} / ${tier.sessionsPerMonth}"
-                                binding.membershipBanner.tvCricketRemaining.text =
-                                    "🏏 ${profile.cricketSessionsRemaining} / ${tier.cricketSessionsPerMonth}"
                                 val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
                                 binding.membershipBanner.tvValidity.text =
                                     profile.membershipExpiry?.let { expiry ->
@@ -175,17 +175,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 binding.membershipBanner.tvNextCycle.text = nextCycleText ?: ""
                             }
 
-                            binding.cardBadminton.tvSessionsRemaining.isVisible = isActiveMember
-                            binding.cardCricket.tvSessionsRemaining.isVisible = isActiveMember
-                            if (isActiveMember) {
-                                val badmintonLeft = profile.sessionsRemaining
-                                binding.cardBadminton.tvSessionsRemaining.text =
-                                    if (badmintonLeft > 0) "🏸 $badmintonLeft free sessions left"
-                                    else "Badminton quota used this month"
-                                val cricketLeft = profile.cricketSessionsRemaining
-                                binding.cardCricket.tvSessionsRemaining.text =
-                                    if (cricketLeft > 0) "🏏 $cricketLeft free sessions left"
-                                    else "Cricket quota used this month"
+                            facilityCards.forEach { (_, cardBinding) ->
+                                cardBinding.tvSessionsRemaining.isVisible = isActiveMember
+                                if (isActiveMember) {
+                                    val remaining = profile.sessionsRemaining
+                                    cardBinding.tvSessionsRemaining.text = if (remaining > 0) {
+                                        getString(R.string.home_sessions_remaining, remaining)
+                                    } else {
+                                        getString(R.string.home_quota_used)
+                                    }
+                                }
                             }
                         }
                     }

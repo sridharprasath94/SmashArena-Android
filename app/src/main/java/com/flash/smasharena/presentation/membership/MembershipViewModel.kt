@@ -142,7 +142,6 @@ class MembershipViewModel @Inject constructor(
             PlanItem(
                 tier = tier,
                 badmintonSessions = tier.sessionsPerMonth,
-                cricketSessions = tier.cricketSessionsPerMonth,
                 isCurrentPlan = isCurrentPlan,
                 isRecommended = tier == MembershipTier.SMASH,
                 isSelected = isSelected,

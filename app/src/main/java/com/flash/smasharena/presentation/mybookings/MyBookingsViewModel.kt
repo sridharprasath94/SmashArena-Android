@@ -232,11 +232,7 @@ class MyBookingsViewModel @Inject constructor(
             slotRepository.cancelBooking(docId)
                 .onSuccess {
                     if (item?.isFreeMembership == true) {
-                        runCatching {
-                            userRepository.decrementSessionsUsed(
-                                isCricket = item.facilityId == Facility.CRICKET_NET.id
-                            )
-                        }
+                        runCatching { userRepository.decrementSessionsUsed() }
                     }
                     _uiState.update { it.copy(cancellingDocId = null, cancelSuccess = true) }
                 }
@@ -304,9 +300,6 @@ class MyBookingsViewModel @Inject constructor(
         const val INITIAL_VISIBLE = 3
     }
 
-    private fun facilityDisplayName(facilityId: String): String = when (facilityId) {
-        "badminton_court_1" -> "Badminton Court"
-        "cricket_net_1" -> "Cricket Net"
-        else -> facilityId
-    }
+    private fun facilityDisplayName(facilityId: String): String =
+        Facility.entries.find { it.id == facilityId }?.displayName ?: facilityId
 }
